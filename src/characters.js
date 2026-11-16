@@ -21,7 +21,7 @@ function entero(valor, min, max) {
   return Math.round(Math.min(Math.max(num, min), max));
 }
 
-// Devuelve { vida, fuerza, magia, encanto }, cada una entera entre 0 y 4.
+// Devuelve { vida, fuerza, magia, encanto }, cada una entera entre 0 y STAT_MAX.
 function limpiarStats(stats) {
   const resultado = {};
   for (const clave of STATS) {
