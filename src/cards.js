@@ -1,22 +1,33 @@
-// src/cards.js
-import { h } from "./utils.js";
+import { estado } from "./state.js";
+import { borrarPersonaje } from "./characters.js";
+import { h, toast, traducirError } from "./utils.js";
 
-// YA RESUELTA: una fila "Etiqueta ........ valor"
 function fila(etiqueta, valor) {
   return h("div", { class: "fila-stat" }, h("span", {}, etiqueta), String(valor));
+}
+
+async function borrar(p) {
+  if (!confirm(`¿Borrar a ${p.nombre}?`)) return;
+
+  try {
+    await borrarPersonaje(estado.codigo, p.id);
+  } catch (e) {
+    toast(traducirError(e), "error");
+  }
 }
 
 function crearTarjeta(p) {
   return h("li", { class: "tarjeta" },
     h("strong", {}, p.nombre),
-
-    // YA RESUELTA: fila de Vida (actual / máximo)
     fila("Vida", `${p.vidaActual}/${p.stats.vida}`),
     fila("Fuerza", p.stats.fuerza),
     fila("Magia", `${p.magiaActual}/${p.stats.magia}`),
     fila("Encanto", p.stats.encanto),
     fila("Raza", p.raza.nombre || "—"),
-    p.estado === "muerto" ? h("em", {}, "Muerto") : null
+    p.estado === "muerto" ? h("em", {}, "Muerto") : null,
+    estado.esLoremaster
+      ? h("button", { class: "btn chico peligro", onclick: () => borrar(p) }, "Borrar")
+      : null
   );
 }
 

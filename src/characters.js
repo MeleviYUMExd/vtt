@@ -1,4 +1,4 @@
-import { db, doc, collection, setDoc, onSnapshot, serverTimestamp } from "./firebase.js";
+import { db, doc, collection, setDoc, deleteDoc, onSnapshot, serverTimestamp } from "./firebase.js";
 
 // Las 4 estadísticas esenciales de todo personaje.
 const STATS = ["vida", "fuerza", "magia", "encanto"];
@@ -94,4 +94,8 @@ export async function crearPersonaje(codigo, datos) {
   
 
   
+}
+
+export function borrarPersonaje(codigo, id) {
+  return deleteDoc(doc(db, "salas", codigo, "personajes", id));
 }
