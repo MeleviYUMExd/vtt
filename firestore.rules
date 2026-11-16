@@ -12,6 +12,27 @@ service cloud.firestore {
         && miFicha(c).data.estado in ['activo', 'pausa'];
     }
 
+    // Una estadística base: número entre 0 y 4.
+    function statValida(v) { return v is number && v >= 0 && v <= 4; }
+
+    // Valida un personaje completo (se usa al crear y al editar).
+    function personajeValido(d) {
+      return d.nombre is string
+        && d.nombre.size() >= 1 && d.nombre.size() <= 30
+        && d.estado in ['vivo', 'muerto']
+        && d.stats.vida is number && statValida(d.stats.vida)
+        && statValida(d.stats.fuerza)
+        && statValida(d.stats.magia)
+        && statValida(d.stats.encanto)
+        && d.vidaActual is number && d.vidaActual >= 0 && d.vidaActual <= 99
+        && d.magiaActual is number && d.magiaActual >= 0 && d.magiaActual <= 99
+        && d.habilidadesMax is number && d.habilidadesMax >= 1 && d.habilidadesMax <= 3
+        && d.habilidadesExtra is number && d.habilidadesExtra >= 0 && d.habilidadesExtra <= 2
+        && d.habilidades is list
+        && d.habilidades.size() <= d.habilidadesMax + d.habilidadesExtra
+        && d.inventario is list && d.inventario.size() <= 10;
+    }
+
     match /salas/{codigo} {
       // Cualquiera logueado puede comprobar que una sala existe (para unirse).
       // Nadie puede listar todas las salas.
@@ -58,6 +79,14 @@ service cloud.firestore {
 
         // El Loremaster expulsa; cada jugador puede salir (borrar su ficha).
         allow delete: if esLM(codigo) || uid == request.auth.uid;
+      }
+
+      // Personajes: todos los miembros los ven, solo el Loremaster los escribe.
+      match /personajes/{personajeId} {
+        allow read: if esLM(codigo) || esMiembro(codigo);
+        allow create: if esLM(codigo) && personajeValido(request.resource.data);
+        allow update: if esLM(codigo) && personajeValido(request.resource.data);
+        allow delete: if esLM(codigo);
       }
     }
   }
