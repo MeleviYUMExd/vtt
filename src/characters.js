@@ -1,4 +1,4 @@
-import { db, doc, collection, setDoc, serverTimestamp } from "./firebase.js";
+import { db, doc, collection, setDoc, onSnapshot, serverTimestamp } from "./firebase.js";
 
 // Las 4 estadísticas esenciales de todo personaje.
 const STATS = ["vida", "fuerza", "magia", "encanto"];
@@ -72,6 +72,15 @@ function limpiarDatos(datos = {}) {
     estado: "vivo"
   };
 }
+// Escucha todos los personajes de la sala. Llama a cb(lista) cada vez que algo cambia.
+// Devuelve una función para dejar de escuchar.
+export function escucharPersonajes(codigo, cb, cbError) {
+  return onSnapshot(
+    collection(db, "salas", codigo, "personajes"),
+    (snap) => cb(snap.docs.map((d) => ({ ...d.data(), id: d.id }))),
+    cbError
+  );
+}
 
 // Guarda un personaje nuevo en salas/{codigo}/personajes y devuelve su id.
 export async function crearPersonaje(codigo, datos) {
@@ -82,4 +91,7 @@ export async function crearPersonaje(codigo, datos) {
     meta: { duenoUid: null, creadoEn: serverTimestamp() }
   });
   return ref.id;
+  
+
+  
 }
