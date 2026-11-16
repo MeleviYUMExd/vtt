@@ -1,4 +1,4 @@
-import { db, doc, collection, setDoc, deleteDoc, onSnapshot, serverTimestamp } from "./firebase.js";
+import { db, doc, collection, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp } from "./firebase.js";
 
 // Las 4 estadísticas esenciales de todo personaje.
 const STATS = ["vida", "fuerza", "magia", "encanto"];
@@ -98,4 +98,10 @@ export async function crearPersonaje(codigo, datos) {
 
 export function borrarPersonaje(codigo, id) {
   return deleteDoc(doc(db, "salas", codigo, "personajes", id));
+}
+
+export function renombrarPersonaje(codigo, id, nombre) {
+  const limpio = String(nombre ?? "").trim().slice(0, 30);
+  if (!limpio) throw new Error("El nombre es obligatorio.");
+  return updateDoc(doc(db, "salas", codigo, "personajes", id), { nombre: limpio });
 }

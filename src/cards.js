@@ -1,5 +1,5 @@
 import { estado } from "./state.js";
-import { borrarPersonaje } from "./characters.js";
+import { borrarPersonaje, renombrarPersonaje } from "./characters.js";
 import { h, toast, traducirError } from "./utils.js";
 
 function fila(etiqueta, valor) {
@@ -16,6 +16,17 @@ async function borrar(p) {
   }
 }
 
+async function renombrar(p) {
+  const nuevo = prompt("Nuevo nombre:", p.nombre);
+  if (nuevo === null) return;
+
+  try {
+    await renombrarPersonaje(estado.codigo, p.id, nuevo);
+  } catch (e) {
+    toast(traducirError(e), "error");
+  }
+}
+
 function crearTarjeta(p) {
   return h("li", { class: "tarjeta" },
     h("strong", {}, p.nombre),
@@ -26,7 +37,9 @@ function crearTarjeta(p) {
     fila("Raza", p.raza.nombre || "—"),
     p.estado === "muerto" ? h("em", {}, "Muerto") : null,
     estado.esLoremaster
-      ? h("button", { class: "btn chico peligro", onclick: () => borrar(p) }, "Borrar")
+      ? h("div", { class: "acciones" },
+          h("button", { class: "btn chico", onclick: () => renombrar(p) }, "Renombrar"),
+          h("button", { class: "btn chico peligro", onclick: () => borrar(p) }, "Borrar"))
       : null
   );
 }
