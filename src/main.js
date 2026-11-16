@@ -1,4 +1,6 @@
 import { asegurarSesion } from "./firebase.js";
+import { escucharPersonajes } from "./characters.js";
+import { pintarPersonajes } from "./cards.js";
 import * as salas from "./rooms.js";
 import { estado, reiniciarSala, cortarListeners, sesion } from "./state.js";
 import {
@@ -81,6 +83,13 @@ function entrarASala(codigo) {
       escuchandoLista = true;
       estado.desuscribir.push(
         salas.escucharJugadores(codigo, pintarListas, (e) => toast(traducirError(e), "error"))
+      );
+      estado.desuscribir.push(
+        escucharPersonajes(
+          codigo,
+          (lista) => pintarPersonajes(lista, $("#lista-personajes")),
+          (e) => toast(traducirError(e), "error")
+        )
       );
     }
   }, (e) => toast(traducirError(e), "error"));
