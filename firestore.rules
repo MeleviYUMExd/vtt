@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logueado() { return request.auth != null; }
+    function salaActual(c) { return get(/databases/$(database)/documents/salas/$(c)).data; }
+    function esLM(c) { return logueado() && salaActual(c).loremasterId == request.auth.uid; }
+    function miFicha(c) { return get(/databases/$(database)/documents/salas/$(c)/jugadores/$(request.auth.uid)); }
+    function esMiembro(c) {
+      return logueado()
+        && exists(/databases/$(database)/documents/salas/$(c)/jugadores/$(request.auth.uid))
+        && miFicha(c).data.estado in ['activo', 'pausa'];
+    }
+
+    match /salas/{codigo} {
+      // Cualquiera logueado puede comprobar que una sala existe (para unirse).
+      // Nadie puede listar todas las salas.
+      allow get: if logueado();
+      allow list: if false;
+
+      allow create: if logueado()
+        && codigo.matches('^[A-Z0-9]{4}$')
+        && request.resource.data.keys().hasOnly(['loremasterId', 'creadaEn', 'version', 'config'])
+        && request.resource.data.loremasterId == request.auth.uid;
+
+      allow update: if esLM(codigo);
+      allow delete: if false;
+
+      match /jugadores/{uid} {
+        // Mi propia ficha, o todas si soy miembro admitido o Loremaster.
+        allow read: if logueado() && (uid == request.auth.uid || esLM(codigo) || esMiembro(codigo));
+
+        allow create: if logueado()
+          && uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['uid', 'nombre', 'esLoremaster', 'estado', 'creadoEn'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.nombre is string
+          && request.resource.data.nombre.size() >= 1
+          && request.resource.data.nombre.size() <= 20
+          && (
+            // Jugador normal: siempre entra como "esperando".
+            (exists(/databases/$(database)/documents/salas/$(codigo))
+              && request.resource.data.esLoremaster == false
+              && request.resource.data.estado == 'esperando')
+            ||
+            // Loremaster: se crea a sí mismo en el mismo lote que la sala.
+            (getAfter(/databases/$(database)/documents/salas/$(codigo)).data.loremasterId == request.auth.uid
+              && request.resource.data.esLoremaster == true
+              && request.resource.data.estado == 'activo')
+          );
+
+        // El Loremaster edita todo. El jugador solo alterna activo <-> pausa.
+        allow update: if esLM(codigo)
+          || (uid == request.auth.uid
+              && resource.data.estado in ['activo', 'pausa']
+              && request.resource.data.estado in ['activo', 'pausa']
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']));
+
+        // El Loremaster expulsa; cada jugador puede salir (borrar su ficha).
+        allow delete: if esLM(codigo) || uid == request.auth.uid;
+      }
+    }
+  }
+}

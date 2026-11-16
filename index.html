@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mesa de rol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+
+  <!-- VISTA: LOGIN -->
+  <main id="vista-login" class="vista" hidden>
+    <section class="portada">
+      <h1>Mesa de rol</h1>
+      <p class="sub">Entra con tu nombre y el código de 4 caracteres de la sala.</p>
+      <form id="form-login" autocomplete="off">
+        <label>Tu nombre
+          <input id="in-nombre" maxlength="20" required placeholder="Ej. Aldric">
+        </label>
+        <label>Código de sala
+          <input id="in-codigo" maxlength="4" required placeholder="X9K2" class="codigo">
+        </label>
+        <div class="fila">
+          <button type="submit" id="btn-unirse" class="btn primario">Unirme a la sala</button>
+          <button type="button" id="btn-crear" class="btn">Crear sala nueva</button>
+        </div>
+        <p class="ayuda">Si creas la sala, tú serás el Loremaster.</p>
+      </form>
+    </section>
+  </main>
+
+  <!-- VISTA: ESPERA -->
+  <main id="vista-espera" class="vista" hidden>
+    <section class="portada">
+      <h1 id="espera-titulo">Esperando al Loremaster</h1>
+      <p class="sub" id="espera-texto">Ya estás registrado. Cuando el Loremaster te admita, entrarás solo.</p>
+      <p class="sala-tag">Sala <strong id="espera-codigo"></strong></p>
+      <button id="btn-espera-salir" class="btn">Salir de la sala</button>
+    </section>
+  </main>
+
+  <!-- VISTA: JUEGO -->
+  <div id="vista-juego" class="vista juego" hidden>
+    <header class="barra">
+      <div class="barra-izq">
+        <span class="marca">Mesa de rol</span>
+        <span class="sala-tag">Sala <strong id="juego-codigo"></strong></span>
+        <span id="juego-rol" class="insignia"></span>
+      </div>
+      <div class="barra-der">
+        <button id="btn-invitar" class="btn chico">Copiar enlace de invitación</button>
+        <button id="btn-salir" class="btn chico">Salir</button>
+      </div>
+    </header>
+
+    <section class="tablero-placeholder">
+      <p>Aquí irá el mapa. Llega en la Fase 4.</p>
+    </section>
+
+    <aside class="lateral">
+      <section id="panel-espera" class="panel" hidden>
+        <h2>Sala de espera</h2>
+        <ul id="lista-espera" class="lista"></ul>
+      </section>
+      <section class="panel">
+        <h2>En la mesa</h2>
+        <ul id="lista-mesa" class="lista"></ul>
+      </section>
+    </aside>
+  </div>
+
+  <div id="toasts" aria-live="polite"></div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
