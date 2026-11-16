@@ -2,6 +2,7 @@ import { asegurarSesion } from "./firebase.js";
 import { escucharPersonajes } from "./characters.js";
 import { pintarPersonajes } from "./cards.js";
 import { iniciarFormPj } from "./pj-form.js";
+import { tirarDado } from "./dados.js";
 import * as salas from "./rooms.js";
 import { estado, reiniciarSala, cortarListeners, sesion } from "./state.js";
 import {
@@ -61,6 +62,8 @@ function entrarASala(codigo) {
   history.replaceState(null, "", `#sala=${codigo}`);
 
   let escuchandoLista = false;
+  let primeraCargaTiradas = true;
+  const tiradasConocidas = new Set();
 
   const off = salas.escucharMiJugador(codigo, estado.uid, (yo) => {
     if (!yo) {
@@ -91,6 +94,26 @@ function entrarASala(codigo) {
           (lista) => pintarPersonajes(lista, $("#lista-personajes")),
           (e) => toast(traducirError(e), "error")
         )
+      );
+      estado.desuscribir.push(
+        salas.escucharTiradas(codigo, (tiradas, desdeCache) => {
+          if (primeraCargaTiradas) {
+            if (desdeCache) return;
+            tiradas.forEach((tirada) => tiradasConocidas.add(tirada.id));
+            primeraCargaTiradas = false;
+            return;
+          }
+
+          const nuevas = tiradas.filter((tirada) => !tiradasConocidas.has(tirada.id));
+          tiradasConocidas.clear();
+          tiradas.forEach((tirada) => tiradasConocidas.add(tirada.id));
+          nuevas.reverse().forEach((tirada) => {
+            toast(
+              `${tirada.nombre} sacó ${tirada.resultado} en d20.`,
+              tirada.resultado === 20 ? "ok" : "info"
+            );
+          });
+        }, (e) => toast(traducirError(e), "error"))
       );
     }
   }, (e) => toast(traducirError(e), "error"));
@@ -156,6 +179,19 @@ $("#btn-invitar").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(url); toast("Enlace copiado.", "ok"); }
   catch { toast(url); }
 });
+
+$("#btn-d20").addEventListener("click", async () => {
+  if (!estado.codigo || !estado.uid || !estado.yo || !["activo", "pausa"].includes(estado.yo.estado)) {
+    return;
+  }
+
+  try {
+    await salas.registrarTirada(estado.codigo, estado.uid, estado.yo.nombre, tirarDado(20));
+  } catch (e) {
+    toast(traducirError(e), "error");
+  }
+});
+
 $("#btn-salir").addEventListener("click", salir);
 
 async function salir() {

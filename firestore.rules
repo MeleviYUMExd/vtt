@@ -14,6 +14,7 @@ service cloud.firestore {
 
     // Una estadística base: número entre 0 y 15.
     function statValida(v) { return v is number && v >= 0 && v <= 15; }
+    function statInicialValida(v) { return v is int && v >= 0 && v <= 4; }
 
     // Valida un personaje completo (se usa al crear y al editar).
     function personajeValido(d) {
@@ -84,9 +85,28 @@ service cloud.firestore {
       // Personajes: todos los miembros los ven, solo el Loremaster los escribe.
       match /personajes/{personajeId} {
         allow read: if esLM(codigo) || esMiembro(codigo);
-        allow create: if esLM(codigo) && personajeValido(request.resource.data);
+        allow create: if esLM(codigo)
+          && personajeValido(request.resource.data)
+          && statInicialValida(request.resource.data.stats.vida)
+          && statInicialValida(request.resource.data.stats.fuerza)
+          && statInicialValida(request.resource.data.stats.magia)
+          && statInicialValida(request.resource.data.stats.encanto);
         allow update: if esLM(codigo) && personajeValido(request.resource.data);
         allow delete: if esLM(codigo);
+      }
+
+      match /tiradas/{tiradaId} {
+        allow read: if esLM(codigo) || esMiembro(codigo);
+        allow create: if esMiembro(codigo)
+          && request.resource.data.keys().hasAll(['uid', 'nombre', 'resultado', 'creadoEn'])
+          && request.resource.data.keys().hasOnly(['uid', 'nombre', 'resultado', 'creadoEn'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.nombre == miFicha(codigo).data.nombre
+          && request.resource.data.resultado is int
+          && request.resource.data.resultado >= 1
+          && request.resource.data.resultado <= 20
+          && request.resource.data.creadoEn == request.time;
+        allow update, delete: if false;
       }
     }
   }

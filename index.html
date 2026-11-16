@@ -52,6 +52,7 @@
         <span id="juego-rol" class="insignia"></span>
       </div>
       <div class="barra-der">
+        <button id="btn-d20" class="btn chico">Tirar d20</button>
         <button id="btn-invitar" class="btn chico">Copiar enlace de invitación</button>
         <button id="btn-salir" class="btn chico">Salir</button>
       </div>
@@ -75,17 +76,17 @@
           <label>Nombre
             <input id="pj-nombre" maxlength="30" required>
           </label>
-          <label>Vida (0-15)
-            <input id="pj-vida" type="number" min="0" max="15" value="4">
+          <label>Vida (0-4)
+            <input id="pj-vida" type="number" min="0" max="4" value="0" readonly required>
           </label>
-          <label>Fuerza (0-15)
-            <input id="pj-fuerza" type="number" min="0" max="15" value="0">
+          <label>Fuerza (0-4)
+            <input id="pj-fuerza" type="number" min="0" max="4" value="0" readonly required>
           </label>
-          <label>Magia (0-15)
-            <input id="pj-magia" type="number" min="0" max="15" value="0">
+          <label>Magia (0-4)
+            <input id="pj-magia" type="number" min="0" max="4" value="0" readonly required>
           </label>
-          <label>Encanto (0-15)
-            <input id="pj-encanto" type="number" min="0" max="15" value="0">
+          <label>Encanto (0-4)
+            <input id="pj-encanto" type="number" min="0" max="4" value="0" readonly required>
           </label>
           <div class="fila">
             <button type="submit" class="btn chico primario">Guardar</button>

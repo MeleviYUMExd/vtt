@@ -1,9 +1,17 @@
 import { $, toast, traducirError } from "./utils.js";
 import { estado } from "./state.js";
 import { crearPersonaje } from "./characters.js";
+import { tirarStats } from "./dados.js";
 
 function leerNumero(selector) {
   return Number($(selector).value);
+}
+
+function ponerStats(stats) {
+  $("#pj-vida").value = stats.vida;
+  $("#pj-fuerza").value = stats.fuerza;
+  $("#pj-magia").value = stats.magia;
+  $("#pj-encanto").value = stats.encanto;
 }
 
 export function iniciarFormPj() {
@@ -11,19 +19,28 @@ export function iniciarFormPj() {
   const btnNuevo = $("#btn-nuevo-pj");
   const btnCancelar = $("#btn-cancelar-pj");
 
-  btnNuevo.addEventListener("click", () => {
-    form.hidden = false;
-    btnNuevo.hidden = true;
-  });
-
-  btnCancelar.addEventListener("click", () => {
+  function cerrar() {
     form.reset();
     form.hidden = true;
-    btnNuevo.hidden = false;
+    btnNuevo.hidden = !estado.esLoremaster;
+  }
+
+  btnNuevo.addEventListener("click", () => {
+    if (!estado.esLoremaster) return;
+
+    form.hidden = false;
+    btnNuevo.hidden = true;
+    const stats = tirarStats();
+    ponerStats(stats);
+    toast(`Dados: vida ${stats.vida}, fuerza ${stats.fuerza}, magia ${stats.magia}, encanto ${stats.encanto}.`);
   });
+
+  btnCancelar.addEventListener("click", cerrar);
 
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
+
+    if (!estado.esLoremaster) return;
 
     const datos = {
       nombre: $("#pj-nombre").value.trim(),
@@ -35,12 +52,15 @@ export function iniciarFormPj() {
       }
     };
 
+    if (Object.values(datos.stats).some((valor) => !Number.isInteger(valor) || valor < 0 || valor > 4)) {
+      toast("Las estadísticas iniciales deben estar entre 0 y 4.", "error");
+      return;
+    }
+
     try {
       await crearPersonaje(estado.codigo, datos);
       toast("Personaje creado.", "ok");
-      form.reset();
-      form.hidden = true;
-      btnNuevo.hidden = false;
+      cerrar();
     } catch (e) {
       toast(traducirError(e), "error");
     }

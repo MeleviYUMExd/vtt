@@ -1,6 +1,6 @@
 import {
   db, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  runTransaction, onSnapshot, collection, serverTimestamp
+  runTransaction, onSnapshot, collection, query, orderBy, limit, serverTimestamp
 } from "./firebase.js";
 
 const salaRef = (c) => doc(db, "salas", c);
@@ -52,6 +52,28 @@ export function escucharMiJugador(codigo, uid, cb, cbError) {
 export function escucharJugadores(codigo, cb, cbError) {
   return onSnapshot(collection(db, "salas", codigo, "jugadores"),
     (snap) => cb(snap.docs.map((d) => d.data())), cbError);
+}
+
+export function escucharTiradas(codigo, cb, cbError) {
+  const tiradas = query(
+    collection(db, "salas", codigo, "tiradas"),
+    orderBy("creadoEn", "desc"),
+    limit(20)
+  );
+  return onSnapshot(
+    tiradas,
+    { includeMetadataChanges: true },
+    (snap) => cb(
+      snap.docs.map((d) => ({ ...d.data(), id: d.id })),
+      snap.metadata.fromCache
+    ),
+    cbError
+  );
+}
+
+export function registrarTirada(codigo, uid, nombre, resultado) {
+  const ref = doc(collection(db, "salas", codigo, "tiradas"));
+  return setDoc(ref, { uid, nombre, resultado, creadoEn: serverTimestamp() });
 }
 
 export const admitir = (codigo, uid) => updateDoc(jugRef(codigo, uid), { estado: "activo" });
