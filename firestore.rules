@@ -12,8 +12,8 @@ service cloud.firestore {
         && miFicha(c).data.estado in ['activo', 'pausa'];
     }
 
-    // Una estadística base: número entre 0 y 4.
-    function statValida(v) { return v is number && v >= 0 && v <= 4; }
+    // Una estadística base: número entre 0 y 15.
+    function statValida(v) { return v is number && v >= 0 && v <= 15; }
 
     // Valida un personaje completo (se usa al crear y al editar).
     function personajeValido(d) {

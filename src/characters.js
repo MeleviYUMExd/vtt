@@ -2,6 +2,7 @@ import { db, doc, collection, setDoc, serverTimestamp } from "./firebase.js";
 
 // Las 4 estadísticas esenciales de todo personaje.
 const STATS = ["vida", "fuerza", "magia", "encanto"];
+const STAT_MAX = 15;   // tope de cada estadística (la tirada inicial va de 0 a 4)
 
 // Limpia una referencia a una entrada del compendio.
 // Devuelve siempre { origenId, nombre } y nada más.
@@ -24,7 +25,7 @@ function entero(valor, min, max) {
 function limpiarStats(stats) {
   const resultado = {};
   for (const clave of STATS) {
-    resultado[clave] = entero(stats?.[clave], 0, 4);
+    resultado[clave] = entero(stats?.[clave], 0, STAT_MAX);
   }
   return resultado;
 }
