@@ -70,6 +70,28 @@
       <!-- NUEVO: panel de personajes -->
       <section class="panel">
         <h2>Personajes</h2>
+        <button id="btn-nuevo-pj" class="btn chico primario" hidden>Nuevo personaje</button>
+        <form id="form-pj" hidden autocomplete="off">
+          <label>Nombre
+            <input id="pj-nombre" maxlength="30" required>
+          </label>
+          <label>Vida (0-15)
+            <input id="pj-vida" type="number" min="0" max="15" value="4">
+          </label>
+          <label>Fuerza (0-15)
+            <input id="pj-fuerza" type="number" min="0" max="15" value="0">
+          </label>
+          <label>Magia (0-15)
+            <input id="pj-magia" type="number" min="0" max="15" value="0">
+          </label>
+          <label>Encanto (0-15)
+            <input id="pj-encanto" type="number" min="0" max="15" value="0">
+          </label>
+          <div class="fila">
+            <button type="submit" class="btn chico primario">Guardar</button>
+            <button type="button" id="btn-cancelar-pj" class="btn chico">Cancelar</button>
+          </div>
+        </form>
         <ul id="lista-personajes" class="lista"></ul>
       </section>
 

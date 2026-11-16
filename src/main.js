@@ -1,6 +1,7 @@
 import { asegurarSesion } from "./firebase.js";
 import { escucharPersonajes } from "./characters.js";
 import { pintarPersonajes } from "./cards.js";
+import { iniciarFormPj } from "./pj-form.js";
 import * as salas from "./rooms.js";
 import { estado, reiniciarSala, cortarListeners, sesion } from "./state.js";
 import {
@@ -113,6 +114,7 @@ function pintarCabecera() {
   $("#juego-codigo").textContent = estado.codigo;
   $("#juego-rol").textContent = estado.esLoremaster ? "Loremaster" : "Jugador";
   $("#panel-espera").hidden = !estado.esLoremaster;
+  $("#btn-nuevo-pj").hidden = !estado.esLoremaster || !$("#form-pj").hidden;
 }
 
 function pintarListas(jugadores) {
@@ -166,6 +168,8 @@ async function salir() {
   history.replaceState(null, "", location.pathname);
   mostrarLogin();
 }
+
+iniciarFormPj();
 
 /* ---------- ARRANQUE ---------- */
 (async function iniciar() {
