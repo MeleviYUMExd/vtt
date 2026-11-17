@@ -105,3 +105,10 @@ export function renombrarPersonaje(codigo, id, nombre) {
   if (!limpio) throw new Error("El nombre es obligatorio.");
   return updateDoc(doc(db, "salas", codigo, "personajes", id), { nombre: limpio });
 }
+
+export function ajustarActual(codigo, id, campo, valor) {
+  if (campo !== "vidaActual" && campo !== "magiaActual") throw new Error("Campo no permitido.");
+  return updateDoc(doc(db, "salas", codigo, "personajes", id), {
+    [campo]: entero(valor, 0, STAT_MAX)
+  });
+}

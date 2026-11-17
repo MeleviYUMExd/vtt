@@ -12,7 +12,7 @@ service cloud.firestore {
         && miFicha(c).data.estado in ['activo', 'pausa'];
     }
 
-    // Una estadística base: número entre 0 y 15.
+    // Una estadística: número entre 0 y 15.
     function statValida(v) { return v is number && v >= 0 && v <= 15; }
 
     // Valida un personaje completo (se usa al crear y al editar).
@@ -24,8 +24,8 @@ service cloud.firestore {
         && statValida(d.stats.fuerza)
         && statValida(d.stats.magia)
         && statValida(d.stats.encanto)
-        && d.vidaActual is number && d.vidaActual >= 0 && d.vidaActual <= 99
-        && d.magiaActual is number && d.magiaActual >= 0 && d.magiaActual <= 99
+        && d.vidaActual is number && statValida(d.vidaActual)
+        && d.magiaActual is number && statValida(d.magiaActual)
         && d.habilidadesMax is number && d.habilidadesMax >= 1 && d.habilidadesMax <= 3
         && d.habilidadesExtra is number && d.habilidadesExtra >= 0 && d.habilidadesExtra <= 2
         && d.habilidades is list

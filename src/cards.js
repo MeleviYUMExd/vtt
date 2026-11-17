@@ -1,5 +1,5 @@
 import { estado } from "./state.js";
-import { borrarPersonaje, renombrarPersonaje } from "./characters.js";
+import { ajustarActual, borrarPersonaje, renombrarPersonaje } from "./characters.js";
 import { h, toast, traducirError } from "./utils.js";
 
 function fila(etiqueta, valor) {
@@ -27,12 +27,31 @@ async function renombrar(p) {
   }
 }
 
+async function ajustar(p, campo, delta) {
+  const nuevo = p[campo] + delta;
+
+  try {
+    await ajustarActual(estado.codigo, p.id, campo, nuevo);
+  } catch (e) {
+    toast(traducirError(e), "error");
+  }
+}
+
+function filaAjustable(etiqueta, p, campo, maximo) {
+  return h("div", { class: "fila-stat" },
+    h("span", {}, etiqueta),
+    h("span", { class: "ajuste" },
+      estado.esLoremaster ? h("button", { class: "btn chico", onclick: () => ajustar(p, campo, -1) }, "-") : null,
+      `${p[campo]}/${maximo}`,
+      estado.esLoremaster ? h("button", { class: "btn chico", onclick: () => ajustar(p, campo, 1) }, "+") : null));
+}
+
 function crearTarjeta(p) {
   return h("li", { class: "tarjeta" },
     h("strong", {}, p.nombre),
-    fila("Vida", `${p.vidaActual}/${p.stats.vida}`),
+    filaAjustable("Vida", p, "vidaActual", p.stats.vida),
     fila("Fuerza", p.stats.fuerza),
-    fila("Magia", `${p.magiaActual}/${p.stats.magia}`),
+    filaAjustable("Magia", p, "magiaActual", p.stats.magia),
     fila("Encanto", p.stats.encanto),
     fila("Raza", p.raza.nombre || "—"),
     p.estado === "muerto" ? h("em", {}, "Muerto") : null,

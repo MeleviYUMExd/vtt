@@ -103,3 +103,9 @@ input.codigo{font-family:var(--serif);font-size:1.6rem;letter-spacing:.35em;text
   grid-column: 1 / -1;
   color: #e07a7a;
 }
+
+.tarjeta .ajuste {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
