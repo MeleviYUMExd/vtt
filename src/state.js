@@ -4,6 +4,8 @@ export const estado = {
   codigo: null,
   yo: null,            // mi documento en jugadores/{uid}
   esLoremaster: false,
+  jugadores: [],
+  personajes: [],
   desuscribir: []      // funciones para cortar listeners
 };
 
@@ -17,6 +19,8 @@ export function reiniciarSala() {
   estado.codigo = null;
   estado.yo = null;
   estado.esLoremaster = false;
+  estado.jugadores = [];
+  estado.personajes = [];
 }
 
 const CLAVE = "vtt:sesion";

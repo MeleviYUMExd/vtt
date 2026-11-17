@@ -112,3 +112,23 @@ export function ajustarActual(codigo, id, campo, valor) {
     [campo]: entero(valor, 0, STAT_MAX)
   });
 }
+
+export function actualizarPersonaje(codigo, id, datos) {
+  const nombre = String(datos?.nombre ?? "").trim().slice(0, 30);
+  if (!nombre) throw new Error("El nombre es obligatorio.");
+  return updateDoc(doc(db, "salas", codigo, "personajes", id), {
+    nombre,
+    stats: limpiarStats(datos?.stats)
+  });
+}
+
+export function cambiarEstadoPersonaje(codigo, id, nuevoEstado) {
+  if (nuevoEstado !== "vivo" && nuevoEstado !== "muerto") {
+    throw new Error("Estado no permitido.");
+  }
+  return updateDoc(doc(db, "salas", codigo, "personajes", id), { estado: nuevoEstado });
+}
+
+export function asignarDueno(codigo, id, uid) {
+  return updateDoc(doc(db, "salas", codigo, "personajes", id), { "meta.duenoUid": uid || null });
+}

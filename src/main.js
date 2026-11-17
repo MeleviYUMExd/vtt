@@ -91,7 +91,10 @@ function entrarASala(codigo) {
       estado.desuscribir.push(
         escucharPersonajes(
           codigo,
-          (lista) => pintarPersonajes(lista, $("#lista-personajes")),
+          (lista) => {
+            estado.personajes = lista;
+            repintarPersonajes();
+          },
           (e) => toast(traducirError(e), "error")
         )
       );
@@ -140,7 +143,14 @@ function pintarCabecera() {
   $("#btn-nuevo-pj").hidden = !estado.esLoremaster || !$("#form-pj").hidden;
 }
 
+function repintarPersonajes() {
+  pintarPersonajes(estado.personajes, $("#lista-personajes"));
+}
+
 function pintarListas(jugadores) {
+  estado.jugadores = jugadores;
+  repintarPersonajes();
+
   const ordenados = [...jugadores].sort((a, b) => millis(a.creadoEn) - millis(b.creadoEn));
   const mesa = ordenados.filter((j) => j.estado === "activo" || j.estado === "pausa");
   const espera = ordenados.filter((j) => j.estado === "esperando");
