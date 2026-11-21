@@ -33,7 +33,9 @@ export function iniciarTurnos(codigo, jugadores) {
 export function pintarBarraTurnos() {
   const t = estado.turnos;
   $("#barra-turnos").hidden = false;
-  $("#btn-iniciar-turnos").hidden = !(estado.esLoremaster && !t);
+  const btn = $("#btn-iniciar-turnos");
+  btn.hidden = !estado.esLoremaster;
+  btn.textContent = t ? "Reiniciar turnos" : "Iniciar turnos";
 
   if (!t) {
     $("#turnos-texto").textContent = "Sin turnos todavía.";
@@ -43,4 +45,38 @@ export function pintarBarraTurnos() {
   const sig = siguienteDe(t.orden, t.actual);
   $("#turnos-texto").textContent =
     `Ronda ${t.ronda} · Turno: ${nombre(t.actual)} · Siguiente: ${nombre(sig)}`;
+}
+
+export function calcularCola(t, jugadores) {
+  const validos = jugadores
+    .filter((j) => !j.esLoremaster && (j.estado === "activo" || j.estado === "pausa"))
+    .sort((a, b) => millis(a.creadoEn) - millis(b.creadoEn))
+    .map((j) => j.uid);
+
+  const conservados = t.orden.filter((uid) => validos.includes(uid));
+  const nuevos = validos.filter((uid) => !t.orden.includes(uid));
+
+  return [...conservados, ...nuevos];
+}
+
+export async function sincronizarCola(codigo, t, jugadores) {
+  if (!t || !estado.esLoremaster || jugadores.length === 0) return;
+
+  const orden = calcularCola(t, jugadores);
+  if (orden.length === 0) return;
+
+  const igual = orden.length === t.orden.length && orden.every((uid, i) => uid === t.orden[i]);
+  if (igual) return;
+
+  let actual = t.actual;
+  if (!orden.includes(actual)) {
+    const i = t.orden.indexOf(actual);
+    const despues = [...t.orden.slice(i + 1), ...t.orden.slice(0, i)];
+    actual = despues.find((uid) => orden.includes(uid)) ?? orden[0];
+  }
+
+  const pendientes = Object.fromEntries(
+    Object.entries(t.pendientes ?? {}).filter(([uid]) => orden.includes(uid))
+  );
+  await setDoc(ref(codigo), { orden, actual, ronda: t.ronda, pendientes });
 }
