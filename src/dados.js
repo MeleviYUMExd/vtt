@@ -20,3 +20,21 @@ export function tirarStats() {
     encanto: tirarEntre(0, 4)
   };
 }
+
+// Cantidad inicial de habilidades: 1 casi siempre, 2 rara, 3 muy rara.
+// Cambia los pesos aquí si quieres otra probabilidad (deben sumar 100).
+const PESOS_HABILIDADES = [
+  { valor: 1, peso: 70 },
+  { valor: 2, peso: 25 },
+  { valor: 3, peso: 5 }
+];
+
+export function tirarHabilidades() {
+  const total = PESOS_HABILIDADES.reduce((suma, o) => suma + o.peso, 0);
+  let punto = Math.random() * total;
+  for (const opcion of PESOS_HABILIDADES) {
+    if (punto < opcion.peso) return opcion.valor;
+    punto -= opcion.peso;
+  }
+  return 1;
+}

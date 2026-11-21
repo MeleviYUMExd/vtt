@@ -106,10 +106,23 @@ export function renombrarPersonaje(codigo, id, nombre) {
   return updateDoc(doc(db, "salas", codigo, "personajes", id), { nombre: limpio });
 }
 
-export function ajustarActual(codigo, id, campo, valor) {
-  if (campo !== "vidaActual" && campo !== "magiaActual") throw new Error("Campo no permitido.");
+// Campos que se pueden subir o bajar con flechas, y su rango.
+const CAMPOS_AJUSTABLES = {
+  vidaActual: [0, STAT_MAX],
+  magiaActual: [0, STAT_MAX],
+  "stats.vida": [0, STAT_MAX],
+  "stats.fuerza": [0, STAT_MAX],
+  "stats.magia": [0, STAT_MAX],
+  "stats.encanto": [0, STAT_MAX],
+  habilidadesMax: [1, 3],
+  habilidadesExtra: [0, 2]
+};
+
+export function ajustarCampo(codigo, id, campo, valor) {
+  const rango = CAMPOS_AJUSTABLES[campo];
+  if (!rango) throw new Error("Campo no permitido.");
   return updateDoc(doc(db, "salas", codigo, "personajes", id), {
-    [campo]: entero(valor, 0, STAT_MAX)
+    [campo]: entero(valor, rango[0], rango[1])
   });
 }
 
@@ -122,11 +135,17 @@ export function actualizarPersonaje(codigo, id, datos) {
   });
 }
 
-export function cambiarEstadoPersonaje(codigo, id, nuevoEstado) {
+// Si muere, pierde al dueño (se guarda en duenoAnterior como historial).
+export function cambiarEstadoPersonaje(codigo, id, nuevoEstado, duenoActual = null) {
   if (nuevoEstado !== "vivo" && nuevoEstado !== "muerto") {
     throw new Error("Estado no permitido.");
   }
-  return updateDoc(doc(db, "salas", codigo, "personajes", id), { estado: nuevoEstado });
+  const cambios = { estado: nuevoEstado };
+  if (nuevoEstado === "muerto") {
+    cambios["meta.duenoAnterior"] = duenoActual || null;
+    cambios["meta.duenoUid"] = null;
+  }
+  return updateDoc(doc(db, "salas", codigo, "personajes", id), cambios);
 }
 
 export function asignarDueno(codigo, id, uid) {

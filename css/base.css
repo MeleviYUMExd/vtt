@@ -124,3 +124,11 @@ input.codigo{font-family:var(--serif);font-size:1.6rem;letter-spacing:.35em;text
 .tarjeta em { color: #e07a7a; }
 .tarjeta.muerta { opacity: 0.55; }
 .tarjeta.mia { box-shadow: 0 0 0 2px #c9a45c; }
+
+.tarjeta .titulo-seccion {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
