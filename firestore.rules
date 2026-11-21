@@ -43,6 +43,15 @@ service cloud.firestore {
         && d.creadoEn == request.time;
     }
 
+    // Valida el documento de turnos.
+    function turnosValidos(d) {
+      return d.keys().hasOnly(['orden', 'actual', 'ronda', 'pendientes'])
+        && d.orden is list && d.orden.size() >= 1 && d.orden.size() <= 20
+        && d.actual in d.orden
+        && d.ronda is int && d.ronda >= 1 && d.ronda <= 9999
+        && d.pendientes is map;
+    }
+
     match /salas/{codigo} {
       // Cualquiera logueado puede comprobar que una sala existe (para unirse).
       // Nadie puede listar todas las salas.
@@ -104,6 +113,13 @@ service cloud.firestore {
         allow read: if esLM(codigo) || esMiembro(codigo);
         allow create: if esMiembro(codigo) && tiradaValida(request.resource.data, codigo);
         allow update, delete: if false;
+      }
+
+      // Turnos: los ven los miembros; por ahora solo el Loremaster escribe.
+      match /turnos/{docId} {
+        allow read: if esLM(codigo) || esMiembro(codigo);
+        allow create, update: if esLM(codigo) && turnosValidos(request.resource.data);
+        allow delete: if esLM(codigo);
       }
     }
   }

@@ -6,6 +6,7 @@ export const estado = {
   esLoremaster: false,
   jugadores: [],
   personajes: [],
+  turnos: null,        // documento salas/{codigo}/turnos/estado
   desuscribir: []      // funciones para cortar listeners
 };
 
@@ -21,6 +22,7 @@ export function reiniciarSala() {
   estado.esLoremaster = false;
   estado.jugadores = [];
   estado.personajes = [];
+  estado.turnos = null;
 }
 
 const CLAVE = "vtt:sesion";

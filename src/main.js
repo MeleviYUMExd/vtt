@@ -2,6 +2,7 @@ import { asegurarSesion } from "./firebase.js";
 import { escucharPersonajes } from "./characters.js";
 import { pintarPersonajes } from "./cards.js";
 import { iniciarFormPj } from "./pj-form.js";
+import { escucharTurnos, iniciarTurnos, pintarBarraTurnos } from "./turnos.js";
 import { tirarDado } from "./dados.js";
 import * as salas from "./rooms.js";
 import { estado, reiniciarSala, cortarListeners, sesion } from "./state.js";
@@ -99,6 +100,13 @@ function entrarASala(codigo) {
         )
       );
       estado.desuscribir.push(
+        escucharTurnos(
+          codigo,
+          (t) => { estado.turnos = t; pintarBarraTurnos(); },
+          (e) => toast(traducirError(e), "error")
+        )
+      );
+      estado.desuscribir.push(
         salas.escucharTiradas(codigo, (tiradas, desdeCache) => {
           if (primeraCargaTiradas) {
             if (desdeCache) return;
@@ -150,6 +158,7 @@ function repintarPersonajes() {
 function pintarListas(jugadores) {
   estado.jugadores = jugadores;
   repintarPersonajes();
+  pintarBarraTurnos();
 
   const ordenados = [...jugadores].sort((a, b) => millis(a.creadoEn) - millis(b.creadoEn));
   const mesa = ordenados.filter((j) => j.estado === "activo" || j.estado === "pausa");
@@ -201,6 +210,9 @@ $("#btn-d20").addEventListener("click", async () => {
     toast(traducirError(e), "error");
   }
 });
+
+$("#btn-iniciar-turnos").addEventListener("click", () =>
+  accion(() => iniciarTurnos(estado.codigo, estado.jugadores)));
 
 $("#btn-salir").addEventListener("click", salir);
 
