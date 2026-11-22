@@ -7,6 +7,7 @@ import {
   ponerTokens, centroVista
 } from "./mapa.js";
 import { escucharTokens, crearToken } from "./tokens.js";
+import { subirImagen, elegirArchivo, PARA_TOKEN, PARA_FONDO } from "./upload.js";
 import {
   escucharTurnos, iniciarTurnos, pintarBarraTurnos, sincronizarCola, avanzarTurno,
   darTiradaExtra, cambiarInfinitas, cambiarCiclo, alternarAfk, tirarD20, puedeTirarAhora
@@ -228,19 +229,29 @@ $("#btn-invitar").addEventListener("click", async () => {
   catch { toast(url); }
 });
 
-$("#btn-fondo").addEventListener("click", () => {
-  const url = prompt("Pega la URL directa de la imagen (https://...). Vacío quita el fondo:");
-  if (url === null) return;
-  accion(() => salas.cambiarFondo(estado.codigo, url));
+$("#btn-fondo").addEventListener("click", async () => {
+  const archivo = await elegirArchivo();
+  if (!archivo) return;
+  toast("Subiendo fondo...");
+  await accion(async () => {
+    const url = await subirImagen(archivo, PARA_FONDO);
+    await salas.cambiarFondo(estado.codigo, url);
+    toast("Fondo cambiado.", "ok");
+  });
 });
 
-$("#btn-token").addEventListener("click", () => {
-  const nombre = prompt("Nombre del token:");
+$("#btn-token").addEventListener("click", async () => {
+  const archivo = await elegirArchivo();
+  if (!archivo) return;
+  const nombre = prompt("Nombre del token:", archivo.name.replace(/\.[^.]+$/, ""));
   if (!nombre) return;
-  const url = prompt("URL directa de la imagen (https://...):");
-  if (!url) return;
+  toast("Subiendo token...");
   const c = centroVista();
-  accion(() => crearToken(estado.codigo, { nombre, imagenUrl: url, x: c.x, y: c.y }, estado.uid));
+  await accion(async () => {
+    const url = await subirImagen(archivo, PARA_TOKEN);
+    await crearToken(estado.codigo, { nombre, imagenUrl: url, x: c.x, y: c.y }, estado.uid);
+    toast("Token creado.", "ok");
+  });
 });
 
 $("#btn-d20").addEventListener("click", () => {
