@@ -17,6 +17,8 @@ let fondo = null;
 let urlFondo = "";
 let fondoRect = null;
 let rectRemoto = null;
+let tokens = [];
+const imagenes = new Map();
 const RADIO_ESQUINA = 14;
 let puedeEditar = false;
 let seleccionado = false;
@@ -36,6 +38,57 @@ export function pedirRedibujo() {
 export function permitirEdicion(si) {
   puedeEditar = si;
   if (!si && seleccionado) { seleccionado = false; sucio = true; }
+}
+
+function obtenerImagen(url) {
+  let e = imagenes.get(url);
+  if (e) return e;
+  const img = new Image();
+  e = { img, listo: false };
+  imagenes.set(url, e);
+  img.onload = () => { e.listo = true; sucio = true; };
+  img.src = url;
+  return e;
+}
+
+export function ponerTokens(lista) {
+  tokens = lista;
+  sucio = true;
+}
+
+export function centroVista() {
+  return screenToWorld(cam, ancho / 2, alto / 2);
+}
+
+function dibujarToken(t) {
+  const r = t.tam / 2;
+  const e = obtenerImagen(t.imagenUrl);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
+  ctx.clip();
+  if (e.listo) {
+    const lado = Math.min(e.img.width, e.img.height);
+    const sx = (e.img.width - lado) / 2;
+    const sy = (e.img.height - lado) / 2;
+    ctx.drawImage(e.img, sx, sy, lado, lado, t.x - r, t.y - r, t.tam, t.tam);
+  } else {
+    ctx.fillStyle = "#252a35";
+    ctx.fillRect(t.x - r, t.y - r, t.tam, t.tam);
+  }
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
+  ctx.lineWidth = 3 / cam.zoom;
+  ctx.strokeStyle = "#c9a45c";
+  ctx.stroke();
+
+  ctx.font = `${14 / cam.zoom}px sans-serif`;
+  ctx.fillStyle = "#e8e2d4";
+  ctx.textAlign = "center";
+  ctx.fillText(t.nombre, t.x, t.y + r + 16 / cam.zoom);
 }
 
 function rectPorDefecto(img) {
@@ -145,6 +198,7 @@ function dibujar() {
     }
   }
   if (MOSTRAR_REJILLA) cuadricula();
+  for (const t of tokens) dibujarToken(t);
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#8b93a5";

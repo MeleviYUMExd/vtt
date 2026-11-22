@@ -3,8 +3,10 @@ import { escucharPersonajes } from "./characters.js";
 import { pintarPersonajes } from "./cards.js";
 import { iniciarFormPj } from "./pj-form.js";
 import {
-  iniciarMapa, ponerFondo, ponerRectFondo, permitirEdicion, alSoltarFondo
+  iniciarMapa, ponerFondo, ponerRectFondo, permitirEdicion, alSoltarFondo,
+  ponerTokens, centroVista
 } from "./mapa.js";
+import { escucharTokens, crearToken } from "./tokens.js";
 import {
   escucharTurnos, iniciarTurnos, pintarBarraTurnos, sincronizarCola, avanzarTurno,
   darTiradaExtra, cambiarInfinitas, cambiarCiclo, alternarAfk, tirarD20, puedeTirarAhora
@@ -25,6 +27,7 @@ const codigoDeHash = () => normalizarCodigo(new URLSearchParams(location.hash.sl
 /* ---------- LOGIN ---------- */
 function mostrarLogin(codigoPrevio = "") {
   reiniciarSala();
+  ponerTokens([]);
   mostrar("login");
   $("#in-codigo").value = codigoPrevio;
   $("#in-nombre").focus();
@@ -100,6 +103,9 @@ function entrarASala(codigo) {
       );
       estado.desuscribir.push(
         salas.escucharJugadores(codigo, pintarListas, (e) => toast(traducirError(e), "error"))
+      );
+      estado.desuscribir.push(
+        escucharTokens(codigo, ponerTokens, (e) => toast(traducirError(e), "error"))
       );
       estado.desuscribir.push(
         escucharPersonajes(
@@ -226,6 +232,15 @@ $("#btn-fondo").addEventListener("click", () => {
   const url = prompt("Pega la URL directa de la imagen (https://...). Vacío quita el fondo:");
   if (url === null) return;
   accion(() => salas.cambiarFondo(estado.codigo, url));
+});
+
+$("#btn-token").addEventListener("click", () => {
+  const nombre = prompt("Nombre del token:");
+  if (!nombre) return;
+  const url = prompt("URL directa de la imagen (https://...):");
+  if (!url) return;
+  const c = centroVista();
+  accion(() => crearToken(estado.codigo, { nombre, imagenUrl: url, x: c.x, y: c.y }, estado.uid));
 });
 
 $("#btn-d20").addEventListener("click", () => {
