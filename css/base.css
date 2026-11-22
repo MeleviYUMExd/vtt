@@ -50,9 +50,6 @@ input.codigo{font-family:var(--serif);font-size:1.6rem;letter-spacing:.35em;text
 .barra{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.6rem 1rem;background:var(--panel);border-bottom:1px solid var(--borde)}
 .barra-izq,.barra-der{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap}
 .marca{font-family:var(--serif);font-weight:700;font-size:1.3rem;color:var(--laton)}
-.tablero-placeholder{display:grid;place-items:center;color:var(--suave);background:
-  repeating-linear-gradient(0deg,transparent 0 47px,#1b1e26 47px 48px),
-  repeating-linear-gradient(90deg,transparent 0 47px,#1b1e26 47px 48px)}
 .lateral{background:var(--panel);border-left:1px solid var(--borde);padding:1rem;display:flex;flex-direction:column;gap:1.25rem;overflow:auto}
 .panel{display:flex;flex-direction:column;gap:.6rem}
 .lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.4rem}
@@ -154,3 +151,16 @@ input.codigo{font-family:var(--serif);font-size:1.6rem;letter-spacing:.35em;text
 .barra-turnos { flex-wrap: wrap; }
 .botones-turnos { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .tarjeta.turno { outline: 2px solid #5ec27a; }
+
+/* ---------- Mapa ---------- */
+.tablero { position: relative; overflow: hidden; min-height: 0; background: #101218; }
+.tablero canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+.tablero canvas:active { cursor: grabbing; }

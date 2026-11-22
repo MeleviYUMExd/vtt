@@ -2,6 +2,7 @@ import { asegurarSesion } from "./firebase.js";
 import { escucharPersonajes } from "./characters.js";
 import { pintarPersonajes } from "./cards.js";
 import { iniciarFormPj } from "./pj-form.js";
+import { iniciarMapa } from "./mapa.js";
 import {
   escucharTurnos, iniciarTurnos, pintarBarraTurnos, sincronizarCola, avanzarTurno,
   darTiradaExtra, cambiarInfinitas, cambiarCiclo, alternarAfk, tirarD20, puedeTirarAhora
@@ -238,6 +239,7 @@ async function salir() {
 }
 
 iniciarFormPj();
+iniciarMapa();
 
 /* ---------- ARRANQUE ---------- */
 (async function iniciar() {
