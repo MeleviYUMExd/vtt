@@ -31,6 +31,16 @@ service cloud.firestore {
         && d.inventario is list && d.inventario.size() <= 10;
     }
 
+    function tokenValido(d) {
+      return d.keys().hasOnly(['nombre', 'imagenUrl', 'x', 'y', 'tam', 'duenoUid', 'creadoEn'])
+        && d.nombre is string && d.nombre.size() >= 1 && d.nombre.size() <= 30
+        && d.imagenUrl is string && d.imagenUrl.matches('^https://.*') && d.imagenUrl.size() <= 500
+        && d.x is number && d.x >= -50000 && d.x <= 50000
+        && d.y is number && d.y >= -50000 && d.y <= 50000
+        && d.tam is number && d.tam >= 20 && d.tam <= 2000
+        && d.duenoUid is string;
+    }
+
     function tiradaBasica(d) {
       return d.keys().hasOnly(['uid', 'nombre', 'resultado', 'creadoEn'])
         && d.uid == request.auth.uid
@@ -111,6 +121,23 @@ service cloud.firestore {
         allow create: if esLM(codigo) && personajeValido(request.resource.data);
         allow update: if esLM(codigo) && personajeValido(request.resource.data);
         allow delete: if esLM(codigo);
+      }
+
+      match /tokens/{tokenId} {
+        allow read: if esLM(codigo) || esMiembro(codigo);
+
+        allow create: if tokenValido(request.resource.data)
+          && (esLM(codigo)
+              || (esMiembro(codigo) && request.resource.data.duenoUid == request.auth.uid));
+
+        allow update: if tokenValido(request.resource.data)
+          && (esLM(codigo)
+              || (esMiembro(codigo)
+                  && resource.data.duenoUid == request.auth.uid
+                  && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['x', 'y', 'tam'])));
+
+        allow delete: if esLM(codigo)
+          || (esMiembro(codigo) && resource.data.duenoUid == request.auth.uid);
       }
 
       match /tiradas/{tiradaId} {
