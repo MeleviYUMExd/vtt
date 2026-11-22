@@ -4,6 +4,8 @@ import { camaraNueva, mover, zoomEnPunto } from "./camara.js";
 import { toast } from "./utils.js";
 
 const cam = camaraNueva();
+const CAJA = 1000;
+const MOSTRAR_REJILLA = false;
 let canvas = null;
 let ctx = null;
 let ancho = 0;
@@ -12,6 +14,7 @@ let dpr = 1;
 let sucio = true;
 let fondo = null;
 let urlFondo = "";
+let fondoRect = null;
 let centrado = false;
 let arrastrando = false;
 let ultimo = { x: 0, y: 0 };
@@ -28,10 +31,19 @@ export function ponerFondo(url) {
   const limpia = url || "";
   if (limpia === urlFondo) return;
   urlFondo = limpia;
-  if (!limpia) { fondo = null; sucio = true; return; }
+  if (!limpia) { fondo = null; fondoRect = null; sucio = true; return; }
 
   const img = new Image();
-  img.onload = () => { if (urlFondo === limpia) { fondo = img; sucio = true; } };
+  img.onload = () => {
+    if (urlFondo === limpia) {
+      fondo = img;
+      const escala = CAJA / Math.max(img.width, img.height);
+      const w = img.width * escala;
+      const h = img.height * escala;
+      fondoRect = { x: (CAJA - w) / 2, y: (CAJA - h) / 2, w, h };
+      sucio = true;
+    }
+  };
   img.onerror = () => toast("No se pudo cargar la imagen de fondo.", "error");
   img.src = limpia;
 }
@@ -47,8 +59,9 @@ function ajustarTamano() {
   canvas.height = Math.round(alto * dpr);
 
   if (!centrado) {
-    cam.x = 500 - ancho / 2 / cam.zoom;
-    cam.y = 500 - alto / 2 / cam.zoom;
+    cam.zoom = Math.min(ancho, alto) / 1050;
+    cam.x = CAJA / 2 - ancho / 2 / cam.zoom;
+    cam.y = CAJA / 2 - alto / 2 / cam.zoom;
     centrado = true;
   }
   sucio = true;
@@ -82,11 +95,10 @@ function dibujar() {
 
   const k = dpr * cam.zoom;
   ctx.setTransform(k, 0, 0, k, -cam.x * k, -cam.y * k);
-  if (fondo) ctx.drawImage(fondo, 0, 0);
-  cuadricula();
-  ctx.lineWidth = 2 / cam.zoom;
-  ctx.strokeStyle = "#c9a45c";
-  ctx.strokeRect(0, 0, 1000, 1000);
+  if (fondo && fondoRect) {
+    ctx.drawImage(fondo, fondoRect.x, fondoRect.y, fondoRect.w, fondoRect.h);
+  }
+  if (MOSTRAR_REJILLA) cuadricula();
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#8b93a5";
