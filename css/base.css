@@ -150,3 +150,7 @@ input.codigo{font-family:var(--serif);font-size:1.6rem;letter-spacing:.35em;text
 @media (max-width:800px) {
   .juego:has(#barra-turnos:not([hidden])) { grid-template-rows: auto auto 12rem 1fr; }
 }
+
+.barra-turnos { flex-wrap: wrap; }
+.botones-turnos { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.tarjeta.turno { outline: 2px solid #5ec27a; }

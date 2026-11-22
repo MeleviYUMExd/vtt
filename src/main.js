@@ -2,8 +2,10 @@ import { asegurarSesion } from "./firebase.js";
 import { escucharPersonajes } from "./characters.js";
 import { pintarPersonajes } from "./cards.js";
 import { iniciarFormPj } from "./pj-form.js";
-import { escucharTurnos, iniciarTurnos, pintarBarraTurnos, sincronizarCola } from "./turnos.js";
-import { tirarDado } from "./dados.js";
+import {
+  escucharTurnos, iniciarTurnos, pintarBarraTurnos, sincronizarCola, avanzarTurno,
+  darTiradaExtra, cambiarInfinitas, cambiarCiclo, alternarAfk, tirarD20, puedeTirarAhora
+} from "./turnos.js";
 import * as salas from "./rooms.js";
 import { estado, reiniciarSala, cortarListeners, sesion } from "./state.js";
 import {
@@ -95,6 +97,7 @@ function entrarASala(codigo) {
           (lista) => {
             estado.personajes = lista;
             repintarPersonajes();
+            refrescarTurnos();
           },
           (e) => toast(traducirError(e), "error")
         )
@@ -102,7 +105,7 @@ function entrarASala(codigo) {
       estado.desuscribir.push(
         escucharTurnos(
           codigo,
-          (t) => { estado.turnos = t; pintarBarraTurnos(); sincronizar(); },
+          (t) => { estado.turnos = t; refrescarTurnos(); repintarPersonajes(); },
           (e) => toast(traducirError(e), "error")
         )
       );
@@ -155,16 +158,16 @@ function repintarPersonajes() {
   pintarPersonajes(estado.personajes, $("#lista-personajes"));
 }
 
-function sincronizar() {
-  sincronizarCola(estado.codigo, estado.turnos, estado.jugadores)
-    .catch((e) => toast(traducirError(e), "error"));
+// Repinta la barra de turnos y corrige la cola si hace falta.
+function refrescarTurnos() {
+  pintarBarraTurnos();
+  sincronizarCola(estado.codigo).catch((e) => toast(traducirError(e), "error"));
 }
 
 function pintarListas(jugadores) {
   estado.jugadores = jugadores;
   repintarPersonajes();
-  pintarBarraTurnos();
-  sincronizar();
+  refrescarTurnos();
 
   const ordenados = [...jugadores].sort((a, b) => millis(a.creadoEn) - millis(b.creadoEn));
   const mesa = ordenados.filter((j) => j.estado === "activo" || j.estado === "pausa");
@@ -177,7 +180,9 @@ function pintarListas(jugadores) {
         h("span", {}, h("span", { class: `punto ${j.estado}` }), j.nombre, j.uid === estado.uid ? " (tú)" : ""),
         h("small", {}, j.esLoremaster ? "Loremaster" : j.estado === "pausa" ? "En pausa" : "Jugador")),
       estado.esLoremaster && !j.esLoremaster
-        ? h("button", { class: "btn chico peligro", onclick: () => accion(() => salas.expulsar(estado.codigo, j.uid)) }, "Expulsar")
+        ? h("span", { class: "acciones" },
+            h("button", { class: "btn chico", onclick: () => accion(() => alternarAfk(estado.codigo, j)) }, j.estado === "pausa" ? "Volver" : "AFK"),
+            h("button", { class: "btn chico peligro", onclick: () => accion(() => salas.expulsar(estado.codigo, j.uid)) }, "Expulsar"))
         : null)));
 
   if (estado.esLoremaster) {
@@ -205,22 +210,19 @@ $("#btn-invitar").addEventListener("click", async () => {
   catch { toast(url); }
 });
 
-$("#btn-d20").addEventListener("click", async () => {
-  if (!estado.codigo || !estado.uid || !estado.yo || !["activo", "pausa"].includes(estado.yo.estado)) {
-    return;
-  }
-
-  try {
-    await salas.registrarTirada(estado.codigo, estado.uid, estado.yo.nombre, tirarDado(20));
-  } catch (e) {
-    toast(traducirError(e), "error");
-  }
+$("#btn-d20").addEventListener("click", () => {
+  if (!puedeTirarAhora()) return toast("No es tu turno, o ya gastaste tu tirada.", "error");
+  accion(() => tirarD20(estado.codigo));
 });
 
 $("#btn-iniciar-turnos").addEventListener("click", () => {
   if (estado.turnos && !confirm("¿Reiniciar los turnos desde la ronda 1?")) return;
-  accion(() => iniciarTurnos(estado.codigo, estado.jugadores));
+  accion(() => iniciarTurnos(estado.codigo));
 });
+$("#btn-pasar-turno").addEventListener("click", () => accion(() => avanzarTurno(estado.codigo)));
+$("#btn-tirada-extra").addEventListener("click", () => accion(() => darTiradaExtra(estado.codigo)));
+$("#btn-infinitas").addEventListener("click", () => accion(() => cambiarInfinitas(estado.codigo)));
+$("#btn-ciclo").addEventListener("click", () => accion(() => cambiarCiclo(estado.codigo)));
 
 $("#btn-salir").addEventListener("click", salir);
 

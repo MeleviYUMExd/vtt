@@ -12,10 +12,8 @@ service cloud.firestore {
         && miFicha(c).data.estado in ['activo', 'pausa'];
     }
 
-    // Una estadística: número entre 0 y 15.
     function statValida(v) { return v is number && v >= 0 && v <= 15; }
 
-    // Valida un personaje completo (se usa al crear y al editar).
     function personajeValido(d) {
       return d.nombre is string
         && d.nombre.size() >= 1 && d.nombre.size() <= 30
@@ -33,28 +31,41 @@ service cloud.firestore {
         && d.inventario is list && d.inventario.size() <= 10;
     }
 
-    // Valida una tirada de d20.
-    function tiradaValida(d, c) {
+    function tiradaBasica(d) {
       return d.keys().hasOnly(['uid', 'nombre', 'resultado', 'creadoEn'])
         && d.uid == request.auth.uid
-        && d.nombre == miFicha(c).data.nombre
+        && d.nombre is string && d.nombre.size() >= 1 && d.nombre.size() <= 30
         && d.resultado is int
         && d.resultado >= 1 && d.resultado <= 20
         && d.creadoEn == request.time;
     }
 
-    // Valida el documento de turnos.
+    function hayTurnos(c) {
+      return exists(/databases/$(database)/documents/salas/$(c)/turnos/estado);
+    }
+    function turnoAntes(c) {
+      return get(/databases/$(database)/documents/salas/$(c)/turnos/estado).data;
+    }
+    function turnoDespues(c) {
+      return getAfter(/databases/$(database)/documents/salas/$(c)/turnos/estado).data;
+    }
+    function duenoDe(c, personajeId) {
+      return get(/databases/$(database)/documents/salas/$(c)/personajes/$(personajeId)).data.meta.duenoUid;
+    }
+
     function turnosValidos(d) {
-      return d.keys().hasOnly(['orden', 'actual', 'ronda', 'pendientes'])
-        && d.orden is list && d.orden.size() >= 1 && d.orden.size() <= 20
+      return d.keys().hasOnly(['orden', 'actual', 'ronda', 'pendientes', 'tiradasRestantes', 'infinitas', 'diaRondas', 'nocheRondas'])
+        && d.orden is list && d.orden.size() >= 1 && d.orden.size() <= 30
         && d.actual in d.orden
         && d.ronda is int && d.ronda >= 1 && d.ronda <= 9999
-        && d.pendientes is map;
+        && d.pendientes is map
+        && d.tiradasRestantes is int && d.tiradasRestantes >= 0 && d.tiradasRestantes <= 9
+        && d.infinitas is bool
+        && d.diaRondas is int && d.diaRondas >= 1 && d.diaRondas <= 20
+        && d.nocheRondas is int && d.nocheRondas >= 1 && d.nocheRondas <= 20;
     }
 
     match /salas/{codigo} {
-      // Cualquiera logueado puede comprobar que una sala existe (para unirse).
-      // Nadie puede listar todas las salas.
       allow get: if logueado();
       allow list: if false;
 
@@ -67,7 +78,6 @@ service cloud.firestore {
       allow delete: if false;
 
       match /jugadores/{uid} {
-        // Mi propia ficha, o todas si soy miembro admitido o Loremaster.
         allow read: if logueado() && (uid == request.auth.uid || esLM(codigo) || esMiembro(codigo));
 
         allow create: if logueado()
@@ -78,29 +88,24 @@ service cloud.firestore {
           && request.resource.data.nombre.size() >= 1
           && request.resource.data.nombre.size() <= 20
           && (
-            // Jugador normal: siempre entra como "esperando".
             (exists(/databases/$(database)/documents/salas/$(codigo))
               && request.resource.data.esLoremaster == false
               && request.resource.data.estado == 'esperando')
             ||
-            // Loremaster: se crea a sí mismo en el mismo lote que la sala.
             (getAfter(/databases/$(database)/documents/salas/$(codigo)).data.loremasterId == request.auth.uid
               && request.resource.data.esLoremaster == true
               && request.resource.data.estado == 'activo')
           );
 
-        // El Loremaster edita todo. El jugador solo alterna activo <-> pausa.
         allow update: if esLM(codigo)
           || (uid == request.auth.uid
               && resource.data.estado in ['activo', 'pausa']
               && request.resource.data.estado in ['activo', 'pausa']
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']));
 
-        // El Loremaster expulsa; cada jugador puede salir (borrar su ficha).
         allow delete: if esLM(codigo) || uid == request.auth.uid;
       }
 
-      // Personajes: todos los miembros los ven, solo el Loremaster los escribe.
       match /personajes/{personajeId} {
         allow read: if esLM(codigo) || esMiembro(codigo);
         allow create: if esLM(codigo) && personajeValido(request.resource.data);
@@ -108,17 +113,28 @@ service cloud.firestore {
         allow delete: if esLM(codigo);
       }
 
-      // Tiradas: las ven los miembros; cada miembro crea las suyas; nadie las edita ni borra.
       match /tiradas/{tiradaId} {
         allow read: if esLM(codigo) || esMiembro(codigo);
-        allow create: if esMiembro(codigo) && tiradaValida(request.resource.data, codigo);
+        allow create: if tiradaBasica(request.resource.data) && (
+          esLM(codigo)
+          || (esMiembro(codigo) && !hayTurnos(codigo))
+          || (esMiembro(codigo) && hayTurnos(codigo)
+              && duenoDe(codigo, turnoAntes(codigo).actual) == request.auth.uid
+              && turnoAntes(codigo).tiradasRestantes >= 1
+              && turnoDespues(codigo).tiradasRestantes == turnoAntes(codigo).tiradasRestantes - 1)
+        );
         allow update, delete: if false;
       }
 
-      // Turnos: los ven los miembros; por ahora solo el Loremaster escribe.
       match /turnos/{docId} {
         allow read: if esLM(codigo) || esMiembro(codigo);
-        allow create, update: if esLM(codigo) && turnosValidos(request.resource.data);
+        allow create: if esLM(codigo) && turnosValidos(request.resource.data);
+        allow update: if (esLM(codigo) && turnosValidos(request.resource.data))
+          || (esMiembro(codigo)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tiradasRestantes'])
+              && resource.data.tiradasRestantes >= 1
+              && request.resource.data.tiradasRestantes == resource.data.tiradasRestantes - 1
+              && duenoDe(codigo, resource.data.actual) == request.auth.uid);
         allow delete: if esLM(codigo);
       }
     }

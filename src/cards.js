@@ -81,7 +81,7 @@ function filasHabilidades(p) {
 function selectorDueno(p) {
   const actual = p.meta?.duenoUid ?? "";
   const candidatos = estado.jugadores.filter(
-    (j) => !j.esLoremaster && (j.estado === "activo" || j.estado === "pausa")
+    (j) => j.estado === "activo" || j.estado === "pausa"
   );
   return h("select", { class: "sel-dueno", onchange: (ev) => asignar(p, ev.target.value) },
     h("option", { value: "", selected: actual === "" }, "Sin dueño"),
@@ -97,7 +97,8 @@ function filaDueno(p) {
 function crearTarjeta(p) {
   const muerto = p.estado === "muerto";
   const mia = !muerto && p.meta?.duenoUid === estado.uid;
-  const clases = ["tarjeta", muerto ? "muerta" : "", mia ? "mia" : ""].filter(Boolean).join(" ");
+  const turno = estado.turnos?.actual === p.id;
+  const clases = ["tarjeta", muerto ? "muerta" : "", mia ? "mia" : "", turno ? "turno" : ""].filter(Boolean).join(" ");
   const eraDe = p.meta?.duenoAnterior ? ` (era de ${nombreDe(p.meta.duenoAnterior)})` : "";
 
   return h("li", { class: clases },
