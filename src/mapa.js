@@ -1,6 +1,7 @@
 // src/mapa.js
 // Tablero con paneo y zoom. Solo vuelve a dibujar cuando hay cambios.
 import { camaraNueva, mover, zoomEnPunto } from "./camara.js";
+import { toast } from "./utils.js";
 
 const cam = camaraNueva();
 let canvas = null;
@@ -9,6 +10,8 @@ let ancho = 0;
 let alto = 0;
 let dpr = 1;
 let sucio = true;
+let fondo = null;
+let urlFondo = "";
 let centrado = false;
 let arrastrando = false;
 let ultimo = { x: 0, y: 0 };
@@ -19,6 +22,18 @@ export function camaraActual() {
 
 export function pedirRedibujo() {
   sucio = true;
+}
+
+export function ponerFondo(url) {
+  const limpia = url || "";
+  if (limpia === urlFondo) return;
+  urlFondo = limpia;
+  if (!limpia) { fondo = null; sucio = true; return; }
+
+  const img = new Image();
+  img.onload = () => { if (urlFondo === limpia) { fondo = img; sucio = true; } };
+  img.onerror = () => toast("No se pudo cargar la imagen de fondo.", "error");
+  img.src = limpia;
 }
 
 function ajustarTamano() {
@@ -67,6 +82,7 @@ function dibujar() {
 
   const k = dpr * cam.zoom;
   ctx.setTransform(k, 0, 0, k, -cam.x * k, -cam.y * k);
+  if (fondo) ctx.drawImage(fondo, 0, 0);
   cuadricula();
   ctx.lineWidth = 2 / cam.zoom;
   ctx.strokeStyle = "#c9a45c";

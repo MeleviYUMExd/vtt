@@ -80,3 +80,17 @@ export const admitir = (codigo, uid) => updateDoc(jugRef(codigo, uid), { estado:
 export const rechazar = (codigo, uid) => updateDoc(jugRef(codigo, uid), { estado: "rechazado" });
 export const expulsar = (codigo, uid) => deleteDoc(jugRef(codigo, uid));
 export const salirDeSala = (codigo, uid) => deleteDoc(jugRef(codigo, uid));
+
+// Escucha el documento de la sala. cb recibe sus datos (o null si no existe).
+export function escucharSala(codigo, cb, cbError) {
+  return onSnapshot(salaRef(codigo), (d) => cb(d.exists() ? d.data() : null), cbError);
+}
+
+// Guarda la URL del fondo. Una URL vacía quita el fondo.
+export function cambiarFondo(codigo, url) {
+  const limpia = String(url ?? "").trim();
+  if (limpia && !limpia.startsWith("https://")) {
+    throw new Error("La URL debe empezar con https://");
+  }
+  return updateDoc(salaRef(codigo), { "config.fondoUrl": limpia });
+}

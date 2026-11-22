@@ -2,7 +2,7 @@ import { asegurarSesion } from "./firebase.js";
 import { escucharPersonajes } from "./characters.js";
 import { pintarPersonajes } from "./cards.js";
 import { iniciarFormPj } from "./pj-form.js";
-import { iniciarMapa } from "./mapa.js";
+import { iniciarMapa, ponerFondo } from "./mapa.js";
 import {
   escucharTurnos, iniciarTurnos, pintarBarraTurnos, sincronizarCola, avanzarTurno,
   darTiradaExtra, cambiarInfinitas, cambiarCiclo, alternarAfk, tirarD20, puedeTirarAhora
@@ -90,6 +90,10 @@ function entrarASala(codigo) {
     if (!escuchandoLista) {
       escuchandoLista = true;
       estado.desuscribir.push(
+        salas.escucharSala(codigo, (sala) => ponerFondo(sala?.config?.fondoUrl),
+          (e) => toast(traducirError(e), "error"))
+      );
+      estado.desuscribir.push(
         salas.escucharJugadores(codigo, pintarListas, (e) => toast(traducirError(e), "error"))
       );
       estado.desuscribir.push(
@@ -151,6 +155,7 @@ $("#btn-espera-salir").addEventListener("click", salir);
 function pintarCabecera() {
   $("#juego-codigo").textContent = estado.codigo;
   $("#juego-rol").textContent = estado.esLoremaster ? "Loremaster" : "Jugador";
+  $("#btn-fondo").hidden = !estado.esLoremaster;
   $("#panel-espera").hidden = !estado.esLoremaster;
   $("#btn-nuevo-pj").hidden = !estado.esLoremaster || !$("#form-pj").hidden;
 }
@@ -209,6 +214,12 @@ $("#btn-invitar").addEventListener("click", async () => {
   const url = `${location.origin}${location.pathname}#sala=${estado.codigo}`;
   try { await navigator.clipboard.writeText(url); toast("Enlace copiado.", "ok"); }
   catch { toast(url); }
+});
+
+$("#btn-fondo").addEventListener("click", () => {
+  const url = prompt("Pega la URL directa de la imagen (https://...). Vacío quita el fondo:");
+  if (url === null) return;
+  accion(() => salas.cambiarFondo(estado.codigo, url));
 });
 
 $("#btn-d20").addEventListener("click", () => {
