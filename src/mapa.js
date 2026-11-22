@@ -64,10 +64,6 @@ function dibujarToken(t) {
   const r = t.tam / 2;
   const e = obtenerImagen(t.imagenUrl);
 
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
-  ctx.clip();
   if (e.listo) {
     const lado = Math.min(e.img.width, e.img.height);
     const sx = (e.img.width - lado) / 2;
@@ -77,18 +73,17 @@ function dibujarToken(t) {
     ctx.fillStyle = "#252a35";
     ctx.fillRect(t.x - r, t.y - r, t.tam, t.tam);
   }
-  ctx.restore();
 
-  ctx.beginPath();
-  ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
   ctx.lineWidth = 3 / cam.zoom;
   ctx.strokeStyle = "#c9a45c";
-  ctx.stroke();
+  ctx.strokeRect(t.x - r, t.y - r, t.tam, t.tam);
 
+  ctx.save();
   ctx.font = `${14 / cam.zoom}px sans-serif`;
   ctx.fillStyle = "#e8e2d4";
   ctx.textAlign = "center";
   ctx.fillText(t.nombre, t.x, t.y + r + 16 / cam.zoom);
+  ctx.restore();
 }
 
 function rectPorDefecto(img) {
