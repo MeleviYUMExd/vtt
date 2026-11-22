@@ -1,6 +1,7 @@
 // src/mapa.js
 // Tablero con paneo y zoom. Solo vuelve a dibujar cuando hay cambios.
-import { camaraNueva, mover, zoomEnPunto } from "./camara.js";
+import { camaraNueva, mover, zoomEnPunto, screenToWorld } from "./camara.js";
+import { puntoEnRect, esquinaEn, esquinas, moverRect, redimensionar } from "./geometria.js";
 import { toast } from "./utils.js";
 
 const cam = camaraNueva();
@@ -15,8 +16,12 @@ let sucio = true;
 let fondo = null;
 let urlFondo = "";
 let fondoRect = null;
+const RADIO_ESQUINA = 14;
+let puedeEditar = false;
+let seleccionado = false;
+let accion = null;
+let alCambiarFondo = null;
 let centrado = false;
-let arrastrando = false;
 let ultimo = { x: 0, y: 0 };
 
 export function camaraActual() {
@@ -27,10 +32,25 @@ export function pedirRedibujo() {
   sucio = true;
 }
 
+export function permitirEdicion(si) {
+  puedeEditar = si;
+  if (!si && seleccionado) { seleccionado = false; sucio = true; }
+}
+
+export function alSoltarFondo(fn) {
+  alCambiarFondo = fn;
+}
+
+function puntoMundo(ev) {
+  const r = canvas.getBoundingClientRect();
+  return screenToWorld(cam, ev.clientX - r.left, ev.clientY - r.top);
+}
+
 export function ponerFondo(url) {
   const limpia = url || "";
   if (limpia === urlFondo) return;
   urlFondo = limpia;
+  seleccionado = false;
   if (!limpia) { fondo = null; fondoRect = null; sucio = true; return; }
 
   const img = new Image();
@@ -98,6 +118,17 @@ function dibujar() {
   if (fondo && fondoRect) {
     ctx.drawImage(fondo, fondoRect.x, fondoRect.y, fondoRect.w, fondoRect.h);
   }
+  if (seleccionado && fondoRect) {
+    ctx.lineWidth = 2 / cam.zoom;
+    ctx.strokeStyle = "#c9a45c";
+    ctx.strokeRect(fondoRect.x, fondoRect.y, fondoRect.w, fondoRect.h);
+
+    const t = 12 / cam.zoom;
+    ctx.fillStyle = "#c9a45c";
+    for (const c of Object.values(esquinas(fondoRect))) {
+      ctx.fillRect(c.x - t / 2, c.y - t / 2, t, t);
+    }
+  }
   if (MOSTRAR_REJILLA) cuadricula();
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -122,22 +153,59 @@ export function iniciarMapa() {
   new ResizeObserver(ajustarTamano).observe(canvas);
 
   canvas.addEventListener("pointerdown", (ev) => {
-    arrastrando = true;
+    const p = puntoMundo(ev);
+    accion = { tipo: "camara", cambio: false };
+
+    if (puedeEditar && seleccionado && fondoRect) {
+      const esq = esquinaEn(fondoRect, p, RADIO_ESQUINA / cam.zoom);
+      if (esq) {
+        accion = { tipo: "esquina", esq, inicial: { ...fondoRect }, cambio: false };
+      } else if (puntoEnRect(fondoRect, p)) {
+        accion = { tipo: "mover", desde: p, inicial: { ...fondoRect }, cambio: false };
+      } else {
+        seleccionado = false;
+        sucio = true;
+      }
+    }
     ultimo = { x: ev.clientX, y: ev.clientY };
     canvas.setPointerCapture(ev.pointerId);
   });
   canvas.addEventListener("pointermove", (ev) => {
-    if (!arrastrando) return;
-    mover(cam, ev.clientX - ultimo.x, ev.clientY - ultimo.y);
-    ultimo = { x: ev.clientX, y: ev.clientY };
+    if (!accion) return;
+
+    if (accion.tipo === "camara") {
+      mover(cam, ev.clientX - ultimo.x, ev.clientY - ultimo.y);
+      ultimo = { x: ev.clientX, y: ev.clientY };
+    } else if (accion.tipo === "mover") {
+      const p = puntoMundo(ev);
+      fondoRect = moverRect(accion.inicial, p.x - accion.desde.x, p.y - accion.desde.y);
+      accion.cambio = true;
+    } else {
+      fondoRect = redimensionar(accion.inicial, accion.esq, puntoMundo(ev));
+      accion.cambio = true;
+    }
     sucio = true;
   });
   const soltar = (ev) => {
-    arrastrando = false;
+    if (accion && accion.tipo !== "camara" && accion.cambio && alCambiarFondo) {
+      alCambiarFondo({ ...fondoRect });
+    }
+    accion = null;
     try { canvas.releasePointerCapture(ev.pointerId); } catch { /* ya estaba suelto */ }
   };
   canvas.addEventListener("pointerup", soltar);
   canvas.addEventListener("pointercancel", soltar);
+
+  canvas.addEventListener("dblclick", (ev) => {
+    if (puedeEditar && fondoRect && puntoEnRect(fondoRect, puntoMundo(ev))) {
+      seleccionado = true;
+      sucio = true;
+    }
+  });
+
+  window.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && seleccionado) { seleccionado = false; sucio = true; }
+  });
 
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();

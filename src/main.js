@@ -2,7 +2,7 @@ import { asegurarSesion } from "./firebase.js";
 import { escucharPersonajes } from "./characters.js";
 import { pintarPersonajes } from "./cards.js";
 import { iniciarFormPj } from "./pj-form.js";
-import { iniciarMapa, ponerFondo } from "./mapa.js";
+import { iniciarMapa, ponerFondo, permitirEdicion, alSoltarFondo } from "./mapa.js";
 import {
   escucharTurnos, iniciarTurnos, pintarBarraTurnos, sincronizarCola, avanzarTurno,
   darTiradaExtra, cambiarInfinitas, cambiarCiclo, alternarAfk, tirarD20, puedeTirarAhora
@@ -155,6 +155,7 @@ $("#btn-espera-salir").addEventListener("click", salir);
 function pintarCabecera() {
   $("#juego-codigo").textContent = estado.codigo;
   $("#juego-rol").textContent = estado.esLoremaster ? "Loremaster" : "Jugador";
+  permitirEdicion(estado.esLoremaster);
   $("#btn-fondo").hidden = !estado.esLoremaster;
   $("#panel-espera").hidden = !estado.esLoremaster;
   $("#btn-nuevo-pj").hidden = !estado.esLoremaster || !$("#form-pj").hidden;
@@ -251,6 +252,7 @@ async function salir() {
 
 iniciarFormPj();
 iniciarMapa();
+alSoltarFondo((r) => console.log("Fondo soltado:", r));
 
 /* ---------- ARRANQUE ---------- */
 (async function iniciar() {
