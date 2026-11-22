@@ -22,10 +22,35 @@ const imagenes = new Map();
 const RADIO_ESQUINA = 14;
 let puedeEditar = false;
 let seleccionado = false;
+let miUid = null;
+let soyLM = false;
+let tokenSel = null;
+let tokenLocal = null;
+let alSoltarToken = null;
+let alBorrarToken = null;
+let esNoche = false;
 let accion = null;
 let alCambiarFondo = null;
 let centrado = false;
 let ultimo = { x: 0, y: 0 };
+
+export function configurarUsuario(uid, esLM) {
+  miUid = uid;
+  soyLM = esLM;
+}
+
+export function onTokenSoltado(fn) {
+  alSoltarToken = fn;
+}
+
+export function onTokenBorrado(fn) {
+  alBorrarToken = fn;
+}
+
+export function ponerNoche(si) {
+  esNoche = si;
+  sucio = true;
+}
 
 export function camaraActual() {
   return cam;
@@ -53,6 +78,13 @@ function obtenerImagen(url) {
 
 export function ponerTokens(lista) {
   tokens = lista;
+  if (tokenLocal) {
+    const remoto = lista.find((t) => t.id === tokenLocal.id);
+    if (remoto && remoto.x === tokenLocal.x && remoto.y === tokenLocal.y && remoto.tam === tokenLocal.tam) {
+      tokenLocal = null;
+    }
+  }
+  if (tokenSel && !lista.some((t) => t.id === tokenSel)) tokenSel = null;
   sucio = true;
 }
 
@@ -61,6 +93,7 @@ export function centroVista() {
 }
 
 function dibujarToken(t) {
+  t = tokenVisible(t);
   const r = t.tam / 2;
   const e = obtenerImagen(t.imagenUrl);
 
@@ -110,6 +143,21 @@ export function alSoltarFondo(fn) {
 function puntoMundo(ev) {
   const r = canvas.getBoundingClientRect();
   return screenToWorld(cam, ev.clientX - r.left, ev.clientY - r.top);
+}
+
+const rectToken = (t) => ({ x: t.x - t.tam / 2, y: t.y - t.tam / 2, w: t.tam, h: t.tam });
+const puedeEditarToken = (t) => soyLM || t.duenoUid === miUid;
+
+function tokenVisible(t) {
+  return tokenLocal && tokenLocal.id === t.id ? { ...t, ...tokenLocal } : t;
+}
+
+function tokenEn(p) {
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const t = tokenVisible(tokens[i]);
+    if (puntoEnRect(rectToken(t), p)) return t;
+  }
+  return undefined;
 }
 
 export function ponerFondo(url) {
@@ -195,7 +243,25 @@ function dibujar() {
   if (MOSTRAR_REJILLA) cuadricula();
   for (const t of tokens) dibujarToken(t);
 
+  const sel = tokens.find((t) => t.id === tokenSel);
+  if (sel && puedeEditarToken(sel)) {
+    const r = rectToken(tokenVisible(sel));
+    ctx.lineWidth = 2 / cam.zoom;
+    ctx.strokeStyle = "#c9a45c";
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+
+    const lado = 12 / cam.zoom;
+    ctx.fillStyle = "#c9a45c";
+    for (const c of Object.values(esquinas(r))) {
+      ctx.fillRect(c.x - lado / 2, c.y - lado / 2, lado, lado);
+    }
+  }
+
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (esNoche) {
+    ctx.fillStyle = "rgba(10, 20, 70, 0.35)";
+    ctx.fillRect(0, 0, ancho, alto);
+  }
   ctx.fillStyle = "#8b93a5";
   ctx.font = "12px sans-serif";
   ctx.fillText(`zoom ${Math.round(cam.zoom * 100)}%`, 10, alto - 10);
@@ -219,6 +285,30 @@ export function iniciarMapa() {
   canvas.addEventListener("pointerdown", (ev) => {
     const p = puntoMundo(ev);
     accion = { tipo: "camara", cambio: false };
+    ultimo = { x: ev.clientX, y: ev.clientY };
+
+    const sel = tokens.find((t) => t.id === tokenSel);
+    if (sel && puedeEditarToken(sel)) {
+      const esq = esquinaEn(rectToken(tokenVisible(sel)), p, RADIO_ESQUINA / cam.zoom);
+      if (esq) {
+        accion = { tipo: "tokenEsquina", id: sel.id, esq, inicial: rectToken(tokenVisible(sel)), cambio: false };
+        canvas.setPointerCapture(ev.pointerId);
+        return;
+      }
+    }
+    const t = tokenEn(p);
+    if (t) {
+      tokenSel = t.id;
+      sucio = true;
+      if (puedeEditarToken(t)) {
+        accion = { tipo: "tokenMover", id: t.id, desde: p, inicial: rectToken(t), cambio: false };
+        canvas.setPointerCapture(ev.pointerId);
+        return;
+      }
+    } else if (tokenSel) {
+      tokenSel = null;
+      sucio = true;
+    }
 
     if (puedeEditar && seleccionado && fondoRect) {
       const esq = esquinaEn(fondoRect, p, RADIO_ESQUINA / cam.zoom);
@@ -237,21 +327,38 @@ export function iniciarMapa() {
   canvas.addEventListener("pointermove", (ev) => {
     if (!accion) return;
 
-    if (accion.tipo === "camara") {
+    if (accion.tipo === "tokenMover") {
+      const p = puntoMundo(ev);
+      const n = moverRect(accion.inicial, p.x - accion.desde.x, p.y - accion.desde.y);
+      tokenLocal = { id: accion.id, x: n.x + n.w / 2, y: n.y + n.h / 2, tam: n.w };
+      accion.cambio = n.x !== accion.inicial.x || n.y !== accion.inicial.y;
+    } else if (accion.tipo === "tokenEsquina") {
+      const n = redimensionar(accion.inicial, accion.esq, puntoMundo(ev));
+      const tam = Math.min(n.w, 2000);
+      const opuestas = { nw: "se", ne: "sw", sw: "ne", se: "nw" };
+      const ancla = esquinas(accion.inicial)[opuestas[accion.esq]];
+      const x = accion.esq.includes("w") ? ancla.x - tam : ancla.x;
+      const y = accion.esq.includes("n") ? ancla.y - tam : ancla.y;
+      tokenLocal = { id: accion.id, x: x + tam / 2, y: y + tam / 2, tam };
+      accion.cambio = x !== accion.inicial.x || y !== accion.inicial.y || tam !== accion.inicial.w;
+    } else if (accion.tipo === "camara") {
       mover(cam, ev.clientX - ultimo.x, ev.clientY - ultimo.y);
       ultimo = { x: ev.clientX, y: ev.clientY };
     } else if (accion.tipo === "mover") {
       const p = puntoMundo(ev);
       fondoRect = moverRect(accion.inicial, p.x - accion.desde.x, p.y - accion.desde.y);
       accion.cambio = true;
-    } else {
+    } else if (accion.tipo === "esquina") {
       fondoRect = redimensionar(accion.inicial, accion.esq, puntoMundo(ev));
       accion.cambio = true;
     }
     sucio = true;
   });
   const soltar = (ev) => {
-    if (accion && accion.tipo !== "camara" && accion.cambio && alCambiarFondo) {
+    if (accion && accion.tipo.startsWith("token") && accion.cambio && tokenLocal && alSoltarToken) {
+      alSoltarToken(tokenLocal.id, { x: tokenLocal.x, y: tokenLocal.y, tam: tokenLocal.tam });
+    }
+    if (accion && (accion.tipo === "mover" || accion.tipo === "esquina") && accion.cambio && alCambiarFondo) {
       alCambiarFondo({ ...fondoRect });
     }
     accion = null;
@@ -268,7 +375,19 @@ export function iniciarMapa() {
   });
 
   window.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape" && seleccionado) { seleccionado = false; sucio = true; }
+    const escribiendo = ["INPUT", "TEXTAREA"].includes(ev.target.tagName);
+    if (escribiendo) return;
+    if (ev.key === "Escape") {
+      tokenSel = null;
+      if (seleccionado) seleccionado = false;
+      sucio = true;
+    }
+    if (ev.key === "Delete" && tokenSel) {
+      const t = tokens.find((x) => x.id === tokenSel);
+      if (t && puedeEditarToken(t) && alBorrarToken) alBorrarToken(tokenSel);
+      tokenSel = null;
+      sucio = true;
+    }
   });
 
   canvas.addEventListener("wheel", (ev) => {

@@ -1,6 +1,6 @@
 // src/tokens.js
 import {
-  db, doc, collection, setDoc, deleteDoc, onSnapshot, serverTimestamp
+  db, doc, collection, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp
 } from "./firebase.js";
 
 export const TAM_POR_DEFECTO = 100;
@@ -44,4 +44,22 @@ export function escucharTokens(codigo, cb, cbError) {
 
 export function borrarToken(codigo, id) {
   return deleteDoc(doc(db, "salas", codigo, "tokens", id));
+}
+
+// Guarda posición y tamaño. Se llama una vez, al soltar.
+export function actualizarToken(codigo, id, r) {
+  if (
+    !Number.isFinite(r?.x) ||
+    !Number.isFinite(r?.y) ||
+    !Number.isFinite(r?.tam) ||
+    r.tam < 20 ||
+    r.tam > 2000
+  ) {
+    throw new Error("Posición o tamaño de token inválidos.");
+  }
+  return updateDoc(doc(db, "salas", codigo, "tokens", id), {
+    x: r.x,
+    y: r.y,
+    tam: r.tam
+  });
 }

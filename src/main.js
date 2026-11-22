@@ -4,14 +4,15 @@ import { pintarPersonajes } from "./cards.js";
 import { iniciarFormPj } from "./pj-form.js";
 import {
   iniciarMapa, ponerFondo, ponerRectFondo, permitirEdicion, alSoltarFondo,
-  ponerTokens, centroVista
+  ponerTokens, centroVista, configurarUsuario, onTokenSoltado, onTokenBorrado, ponerNoche
 } from "./mapa.js";
-import { escucharTokens, crearToken } from "./tokens.js";
+import { escucharTokens, crearToken, actualizarToken, borrarToken } from "./tokens.js";
 import { subirImagen, elegirArchivo, PARA_TOKEN, PARA_FONDO } from "./upload.js";
 import {
   escucharTurnos, iniciarTurnos, pintarBarraTurnos, sincronizarCola, avanzarTurno,
   darTiradaExtra, cambiarInfinitas, cambiarCiclo, alternarAfk, tirarD20, puedeTirarAhora
 } from "./turnos.js";
+import { faseDelDia } from "./turnos-logica.js";
 import * as salas from "./rooms.js";
 import { estado, reiniciarSala, cortarListeners, sesion } from "./state.js";
 import {
@@ -122,7 +123,16 @@ function entrarASala(codigo) {
       estado.desuscribir.push(
         escucharTurnos(
           codigo,
-          (t) => { estado.turnos = t; refrescarTurnos(); repintarPersonajes(); },
+          (t) => {
+            estado.turnos = t;
+            const fase = t && Number.isFinite(t.ronda) &&
+              Number.isFinite(t.diaRondas) && Number.isFinite(t.nocheRondas)
+              ? faseDelDia(t.ronda, t.diaRondas, t.nocheRondas).fase
+              : "Día";
+            ponerNoche(fase === "Noche");
+            refrescarTurnos();
+            repintarPersonajes();
+          },
           (e) => toast(traducirError(e), "error")
         )
       );
@@ -167,6 +177,7 @@ $("#btn-espera-salir").addEventListener("click", salir);
 function pintarCabecera() {
   $("#juego-codigo").textContent = estado.codigo;
   $("#juego-rol").textContent = estado.esLoremaster ? "Loremaster" : "Jugador";
+  configurarUsuario(estado.uid, estado.esLoremaster);
   permitirEdicion(estado.esLoremaster);
   $("#btn-fondo").hidden = !estado.esLoremaster;
   $("#panel-espera").hidden = !estado.esLoremaster;
@@ -284,6 +295,8 @@ async function salir() {
 iniciarFormPj();
 iniciarMapa();
 alSoltarFondo((r) => accion(() => salas.guardarFondoRect(estado.codigo, r)));
+onTokenSoltado((id, r) => accion(() => actualizarToken(estado.codigo, id, r)));
+onTokenBorrado((id) => accion(() => borrarToken(estado.codigo, id)));
 
 /* ---------- ARRANQUE ---------- */
 (async function iniciar() {
