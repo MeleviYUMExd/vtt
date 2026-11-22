@@ -92,5 +92,25 @@ export function cambiarFondo(codigo, url) {
   if (limpia && !limpia.startsWith("https://")) {
     throw new Error("La URL debe empezar con https://");
   }
-  return updateDoc(salaRef(codigo), { "config.fondoUrl": limpia });
+  return updateDoc(salaRef(codigo), {
+    "config.fondoUrl": limpia,
+    "config.fondoRect": null
+  });
+}
+
+// Guarda la posicion y el tamano del fondo. Se llama una vez, al soltar.
+export function guardarFondoRect(codigo, r) {
+  if (
+    !Number.isFinite(r?.x) ||
+    !Number.isFinite(r?.y) ||
+    !Number.isFinite(r?.w) ||
+    !Number.isFinite(r?.h) ||
+    r.w < 50 ||
+    r.w > 20000
+  ) {
+    throw new Error("Posición de fondo inválida.");
+  }
+  return updateDoc(salaRef(codigo), {
+    "config.fondoRect": { x: r.x, y: r.y, w: r.w, h: r.h }
+  });
 }

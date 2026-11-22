@@ -2,7 +2,9 @@ import { asegurarSesion } from "./firebase.js";
 import { escucharPersonajes } from "./characters.js";
 import { pintarPersonajes } from "./cards.js";
 import { iniciarFormPj } from "./pj-form.js";
-import { iniciarMapa, ponerFondo, permitirEdicion, alSoltarFondo } from "./mapa.js";
+import {
+  iniciarMapa, ponerFondo, ponerRectFondo, permitirEdicion, alSoltarFondo
+} from "./mapa.js";
 import {
   escucharTurnos, iniciarTurnos, pintarBarraTurnos, sincronizarCola, avanzarTurno,
   darTiradaExtra, cambiarInfinitas, cambiarCiclo, alternarAfk, tirarD20, puedeTirarAhora
@@ -90,7 +92,10 @@ function entrarASala(codigo) {
     if (!escuchandoLista) {
       escuchandoLista = true;
       estado.desuscribir.push(
-        salas.escucharSala(codigo, (sala) => ponerFondo(sala?.config?.fondoUrl),
+        salas.escucharSala(codigo, (sala) => {
+          ponerFondo(sala?.config?.fondoUrl);
+          ponerRectFondo(sala?.config?.fondoRect);
+        },
           (e) => toast(traducirError(e), "error"))
       );
       estado.desuscribir.push(
@@ -252,7 +257,7 @@ async function salir() {
 
 iniciarFormPj();
 iniciarMapa();
-alSoltarFondo((r) => console.log("Fondo soltado:", r));
+alSoltarFondo((r) => accion(() => salas.guardarFondoRect(estado.codigo, r)));
 
 /* ---------- ARRANQUE ---------- */
 (async function iniciar() {

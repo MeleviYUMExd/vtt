@@ -16,6 +16,7 @@ let sucio = true;
 let fondo = null;
 let urlFondo = "";
 let fondoRect = null;
+let rectRemoto = null;
 const RADIO_ESQUINA = 14;
 let puedeEditar = false;
 let seleccionado = false;
@@ -35,6 +36,23 @@ export function pedirRedibujo() {
 export function permitirEdicion(si) {
   puedeEditar = si;
   if (!si && seleccionado) { seleccionado = false; sucio = true; }
+}
+
+function rectPorDefecto(img) {
+  const escala = CAJA / Math.max(img.width, img.height);
+  const w = img.width * escala;
+  const h = img.height * escala;
+  return { x: (CAJA - w) / 2, y: (CAJA - h) / 2, w, h };
+}
+
+export function ponerRectFondo(r) {
+  const valido = r && [r.x, r.y, r.w, r.h].every(Number.isFinite);
+  rectRemoto = valido ? r : null;
+  const arrastrando = accion && accion.tipo !== "camara";
+  if (fondo && !arrastrando) {
+    fondoRect = rectRemoto ?? rectPorDefecto(fondo);
+    sucio = true;
+  }
 }
 
 export function alSoltarFondo(fn) {
@@ -57,10 +75,7 @@ export function ponerFondo(url) {
   img.onload = () => {
     if (urlFondo === limpia) {
       fondo = img;
-      const escala = CAJA / Math.max(img.width, img.height);
-      const w = img.width * escala;
-      const h = img.height * escala;
-      fondoRect = { x: (CAJA - w) / 2, y: (CAJA - h) / 2, w, h };
+      fondoRect = rectRemoto ?? rectPorDefecto(img);
       sucio = true;
     }
   };
