@@ -41,6 +41,29 @@ service cloud.firestore {
         && d.duenoUid is string;
     }
 
+    function compendioValido(d) {
+      return d.keys().hasOnly(['categoria','nombre','descripcion','subOpciones','creadoPor','creadoEn'])
+        && d.categoria in ['razas','objetos','spawn','habilidades']
+        && d.nombre is string && d.nombre.size() >= 1 && d.nombre.size() <= 40
+        && d.descripcion is string && d.descripcion.size() <= 300
+        && d.subOpciones is list && d.subOpciones.size() <= 30;
+    }
+
+    function ruletaValida(d, uid) {
+      return d.keys().hasOnly(['id','tipo','titulo','opciones','resultado','caras','valores','etiquetas','giradaPor','nombreGirador','ts'])
+        && d.id is string && d.id.size() <= 60
+        && d.tipo in ['ruleta','dados']
+        && d.titulo is string && d.titulo.size() <= 80
+        && d.opciones is list && d.opciones.size() <= 60
+        && d.resultado is number
+        && (d.tipo == 'dados' || (d.opciones.size() >= 1 && d.resultado >= 0 && d.resultado < d.opciones.size()))
+        && d.valores is list && d.valores.size() <= 8
+        && d.etiquetas is list && d.etiquetas.size() <= 8
+        && d.caras is number
+        && d.giradaPor == uid
+        && d.nombreGirador is string && d.nombreGirador.size() <= 30;
+    }
+
     function tiradaBasica(d) {
       return d.keys().hasOnly(['uid', 'nombre', 'resultado', 'creadoEn'])
         && d.uid == request.auth.uid
@@ -136,8 +159,7 @@ service cloud.firestore {
                   && resource.data.duenoUid == request.auth.uid
                   && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['x', 'y', 'tam'])));
 
-        allow delete: if esLM(codigo)
-          || (esMiembro(codigo) && resource.data.duenoUid == request.auth.uid);
+        allow delete: if esLM(codigo);
       }
 
       match /tiradas/{tiradaId} {
@@ -163,6 +185,22 @@ service cloud.firestore {
               && request.resource.data.tiradasRestantes == resource.data.tiradasRestantes - 1
               && duenoDe(codigo, resource.data.actual) == request.auth.uid);
         allow delete: if esLM(codigo);
+      }
+
+      match /compendio/{entradaId} {
+        allow read: if esLM(codigo) || esMiembro(codigo);
+        allow create: if (esLM(codigo) || esMiembro(codigo))
+          && compendioValido(request.resource.data)
+          && request.resource.data.creadoPor == request.auth.uid;
+        allow update: if (esLM(codigo) || esMiembro(codigo)) && compendioValido(request.resource.data);
+        allow delete: if esLM(codigo) || esMiembro(codigo);
+      }
+
+      match /ruletas/{rid} {
+        allow read: if esLM(codigo) || esMiembro(codigo);
+        allow create, update: if (esLM(codigo) || esMiembro(codigo))
+          && ruletaValida(request.resource.data, request.auth.uid);
+        allow delete: if false;
       }
     }
   }

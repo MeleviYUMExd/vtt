@@ -125,9 +125,12 @@ export async function tirarD20(codigo) {
   const resultado = tirarDado(20);
 
   const libre = !t || (estado.esLoremaster && t.infinitas);
-  if (libre) return registrarTirada(codigo, estado.uid, nombre, resultado);
+  if (libre) {
+    await registrarTirada(codigo, estado.uid, nombre, resultado);
+    return { nombre, resultado };
+  }
 
-  return runTransaction(db, async (tx) => {
+  await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref(codigo));
     const fresco = snap.data();
     if (!fresco || fresco.actual !== t.actual || fresco.tiradasRestantes < 1) {
@@ -138,6 +141,7 @@ export async function tirarD20(codigo) {
       uid: estado.uid, nombre, resultado, creadoEn: serverTimestamp()
     });
   });
+  return { nombre, resultado };
 }
 
 export function pintarBarraTurnos() {

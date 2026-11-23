@@ -18,6 +18,9 @@ import { estado, reiniciarSala, cortarListeners, sesion } from "./state.js";
 import {
   $, h, toast, traducirError, normalizarCodigo, limpiarNombre, CODIGO_RE, millis
 } from "./utils.js";
+import { iniciarRuleta, conectarRuleta, desconectarRuleta } from "./ruleta.js";
+import { iniciarDatos, conectarDatos, desconectarDatos } from "./datos.js";
+import { mostrarTirada } from "./sorteo.js";
 
 const VISTAS = ["login", "espera", "juego"];
 function mostrar(nombre) {
@@ -96,6 +99,9 @@ function entrarASala(codigo) {
     mostrar("juego");
     if (!escuchandoLista) {
       escuchandoLista = true;
+      conectarRuleta(codigo, estado.uid, estado.yo.nombre);
+      conectarDatos(codigo, estado.uid);
+      estado.desuscribir.push(() => { desconectarRuleta(); desconectarDatos(); });
       estado.desuscribir.push(
         salas.escucharSala(codigo, (sala) => {
           ponerFondo(sala?.config?.fondoUrl);
@@ -231,7 +237,7 @@ function pintarListas(jugadores) {
 }
 
 async function accion(fn) {
-  try { await fn(); } catch (e) { toast(traducirError(e), "error"); }
+  try { return await fn(); } catch (e) { toast(traducirError(e), "error"); return null; }
 }
 
 $("#btn-invitar").addEventListener("click", async () => {
@@ -265,9 +271,10 @@ $("#btn-token").addEventListener("click", async () => {
   });
 });
 
-$("#btn-d20").addEventListener("click", () => {
+$("#btn-d20").addEventListener("click", async () => {
   if (!puedeTirarAhora()) return toast("No es tu turno, o ya gastaste tu tirada.", "error");
-  accion(() => tirarD20(estado.codigo));
+  const tirada = await accion(() => tirarD20(estado.codigo));
+  if (tirada) await mostrarTirada(tirada.nombre, tirada.resultado);
 });
 
 $("#btn-iniciar-turnos").addEventListener("click", () => {
@@ -294,6 +301,8 @@ async function salir() {
 
 iniciarFormPj();
 iniciarMapa();
+iniciarRuleta();
+iniciarDatos(document.querySelector(".tablero"));
 alSoltarFondo((r) => accion(() => salas.guardarFondoRect(estado.codigo, r)));
 onTokenSoltado((id, r) => accion(() => actualizarToken(estado.codigo, id, r)));
 onTokenBorrado((id) => accion(() => borrarToken(estado.codigo, id)));

@@ -33,6 +33,8 @@ let accion = null;
 let alCambiarFondo = null;
 let centrado = false;
 let ultimo = { x: 0, y: 0 };
+let fondoInicializado = false;
+let movimientoUsuario = false;
 
 export function configurarUsuario(uid, esLM) {
   miUid = uid;
@@ -90,6 +92,17 @@ export function ponerTokens(lista) {
 
 export function centroVista() {
   return screenToWorld(cam, ancho / 2, alto / 2);
+}
+
+export function centrarVista() {
+  if (!ancho || !alto) return;
+  const rect = fondoRect || { x: 0, y: 0, w: CAJA, h: CAJA };
+  cam.zoom = Math.max(0.2, Math.min(ancho / rect.w, alto / rect.h, 4));
+  cam.x = rect.x + rect.w / 2 - ancho / 2 / cam.zoom;
+  cam.y = rect.y + rect.h / 2 - alto / 2 / cam.zoom;
+  centrado = true;
+  movimientoUsuario = true;
+  sucio = true;
 }
 
 function dibujarToken(t) {
@@ -172,6 +185,14 @@ export function ponerFondo(url) {
     if (urlFondo === limpia) {
       fondo = img;
       fondoRect = rectRemoto ?? rectPorDefecto(img);
+      if (!fondoInicializado && !movimientoUsuario) {
+        const rect = fondoRect;
+        cam.zoom = Math.max(0.2, Math.min(ancho / rect.w, alto / rect.h, 4));
+        cam.x = rect.x + rect.w / 2 - ancho / 2 / cam.zoom;
+        cam.y = rect.y + rect.h / 2 - alto / 2 / cam.zoom;
+        centrado = true;
+      }
+      fondoInicializado = true;
       sucio = true;
     }
   };
@@ -342,6 +363,7 @@ export function iniciarMapa() {
       tokenLocal = { id: accion.id, x: x + tam / 2, y: y + tam / 2, tam };
       accion.cambio = x !== accion.inicial.x || y !== accion.inicial.y || tam !== accion.inicial.w;
     } else if (accion.tipo === "camara") {
+      movimientoUsuario = true;
       mover(cam, ev.clientX - ultimo.x, ev.clientY - ultimo.y);
       ultimo = { x: ev.clientX, y: ev.clientY };
     } else if (accion.tipo === "mover") {
@@ -384,7 +406,7 @@ export function iniciarMapa() {
     }
     if (ev.key === "Delete" && tokenSel) {
       const t = tokens.find((x) => x.id === tokenSel);
-      if (t && puedeEditarToken(t) && alBorrarToken) alBorrarToken(tokenSel);
+      if (t && soyLM && alBorrarToken) alBorrarToken(tokenSel);
       tokenSel = null;
       sucio = true;
     }
@@ -392,6 +414,7 @@ export function iniciarMapa() {
 
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
+    movimientoUsuario = true;
     const r = canvas.getBoundingClientRect();
     zoomEnPunto(cam, ev.clientX - r.left, ev.clientY - r.top, Math.exp(-ev.deltaY * 0.0015));
     sucio = true;
