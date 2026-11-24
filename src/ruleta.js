@@ -93,6 +93,23 @@ export function lanzarDados(titulo, caras, valores, etiquetas = []) {
   return enviar({ tipo: "dados", titulo: String(titulo).slice(0, 80), caras, valores, etiquetas });
 }
 
+export function mostrarTiradaLocal(nombre, resultado) {
+  if (!Number.isInteger(resultado) || resultado < 1 || resultado > 20) {
+    throw new RangeError("El resultado del d20 debe estar entre 1 y 20.");
+  }
+  if (!overlay) iniciarRuleta();
+  reproducir({
+    id: idNuevo(),
+    tipo: "dados",
+    titulo: `d20 de ${String(nombre || "Alguien").slice(0, 30)}`,
+    opciones: [],
+    resultado,
+    caras: 20,
+    valores: [resultado],
+    etiquetas: []
+  });
+}
+
 function ocultar() {
   clearTimeout(cerrarTimer);
   overlay.hidden = true;

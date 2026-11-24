@@ -5,7 +5,11 @@ export const PAISAJE = {
   y0: -2500,
   horizonte: 560,
   cieloArriba: "#1f4fb0",
-  pastoAbajo: "#2c7430"
+  pastoAbajo: "#2c7430",
+  noche: {
+    cieloArriba: "#07142e",
+    pastoAbajo: "#12291e"
+  }
 };
 
 function mulberry32(semilla) {
@@ -29,17 +33,18 @@ function banda(a, b, t, x, y, N) {
   return mezcla(a, b, Math.min(1, k / N));
 }
 
-export function generarPaisaje(semilla = 20261122) {
+export function generarPaisaje(semilla = 20261122, fase = "Día") {
   const W = PAISAJE.px;
   const H = PAISAJE.px;
   const rng = mulberry32(semilla);
+  const esNoche = fase === "noche" || fase === "Noche";
   const datos = new Uint8ClampedArray(W * H * 4);
   const poner = (x, y, c) => {
     if (x < 0 || x >= W || y < 0 || y >= H) return;
     const i = (y * W + x) * 4;
-    datos[i] = c[0];
-    datos[i + 1] = c[1];
-    datos[i + 2] = c[2];
+    datos[i] = Math.round(c[0] * (esNoche ? 0.28 : 1));
+    datos[i + 1] = Math.round(c[1] * (esNoche ? 0.4 : 1));
+    datos[i + 2] = Math.round(c[2] * (esNoche ? 0.63 : 1));
     datos[i + 3] = 255;
   };
   const ponerEnvuelto = (x, y, c) => poner(((x % W) + W) % W, y, c);

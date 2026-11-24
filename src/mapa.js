@@ -18,6 +18,7 @@ let fondo = null;
 let urlFondo = "";
 let fondoRect = null;
 let lienzoPaisaje = null;
+let lienzoPaisajeNoche = null;
 let rectRemoto = null;
 let tokens = [];
 const imagenes = new Map();
@@ -243,6 +244,17 @@ function cuadricula() {
   ctx.stroke();
 }
 
+function crearLienzoPaisaje(fase) {
+  const lienzo = document.createElement("canvas");
+  lienzo.width = PAISAJE.px;
+  lienzo.height = PAISAJE.px;
+  const contexto = lienzo.getContext("2d");
+  const imagen = contexto.createImageData(PAISAJE.px, PAISAJE.px);
+  imagen.data.set(generarPaisaje(20261122, fase).datos);
+  contexto.putImageData(imagen, 0, 0);
+  return lienzo;
+}
+
 function dibujarPaisaje() {
   const izquierda = cam.x;
   const arriba = cam.y;
@@ -251,19 +263,21 @@ function dibujarPaisaje() {
   const w = derecha - izquierda;
   const h = abajo - arriba;
   const finPaisaje = PAISAJE.y0 + PAISAJE.mundo;
+  const colores = esNoche ? PAISAJE.noche : PAISAJE;
+  const lienzo = esNoche ? lienzoPaisajeNoche : lienzoPaisaje;
 
-  ctx.fillStyle = PAISAJE.cieloArriba;
+  ctx.fillStyle = colores.cieloArriba;
   ctx.fillRect(izquierda, arriba, w, h);
 
   if (abajo > finPaisaje) {
     const inicioPasto = Math.max(arriba, finPaisaje);
-    ctx.fillStyle = PAISAJE.pastoAbajo;
+    ctx.fillStyle = colores.pastoAbajo;
     ctx.fillRect(izquierda, inicioPasto, w, abajo - inicioPasto);
   }
 
   const primerMosaico = Math.floor(izquierda / PAISAJE.mundo) * PAISAJE.mundo;
   for (let x = primerMosaico; x < derecha; x += PAISAJE.mundo) {
-    ctx.drawImage(lienzoPaisaje, x, PAISAJE.y0, PAISAJE.mundo, PAISAJE.mundo);
+    ctx.drawImage(lienzo, x, PAISAJE.y0, PAISAJE.mundo, PAISAJE.mundo);
   }
 }
 
@@ -277,6 +291,10 @@ function dibujar() {
   dibujarPaisaje();
   if (fondo && fondoRect) {
     ctx.drawImage(fondo, fondoRect.x, fondoRect.y, fondoRect.w, fondoRect.h);
+  }
+  if (esNoche) {
+    ctx.fillStyle = "rgba(5, 14, 38, 0.2)";
+    ctx.fillRect(cam.x, cam.y, ancho / cam.zoom, alto / cam.zoom);
   }
   if (seleccionado && fondoRect) {
     ctx.lineWidth = 2 / cam.zoom;
@@ -307,10 +325,6 @@ function dibujar() {
   }
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (esNoche) {
-    ctx.fillStyle = "rgba(10, 20, 70, 0.35)";
-    ctx.fillRect(0, 0, ancho, alto);
-  }
   ctx.fillStyle = "#8b93a5";
   ctx.font = "12px sans-serif";
   ctx.fillText(`zoom ${Math.round(cam.zoom * 100)}%`, 10, alto - 10);
@@ -328,14 +342,8 @@ export function iniciarMapa() {
   if (canvas) return;
   canvas = document.getElementById("mapa");
   ctx = canvas.getContext("2d");
-  lienzoPaisaje = document.createElement("canvas");
-  lienzoPaisaje.width = PAISAJE.px;
-  lienzoPaisaje.height = PAISAJE.px;
-  lienzoPaisaje.getContext("2d").putImageData(
-    new ImageData(generarPaisaje().datos, PAISAJE.px, PAISAJE.px),
-    0,
-    0
-  );
+  lienzoPaisaje = crearLienzoPaisaje("Día");
+  lienzoPaisajeNoche = crearLienzoPaisaje("Noche");
   new ResizeObserver(ajustarTamano).observe(canvas);
 
   canvas.addEventListener("pointerdown", (ev) => {

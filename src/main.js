@@ -18,9 +18,9 @@ import { estado, reiniciarSala, cortarListeners, sesion } from "./state.js";
 import {
   $, h, toast, traducirError, normalizarCodigo, limpiarNombre, CODIGO_RE, millis
 } from "./utils.js";
-import { iniciarRuleta, conectarRuleta, desconectarRuleta } from "./ruleta.js";
+import { iniciarRuleta, conectarRuleta, desconectarRuleta, mostrarTiradaLocal } from "./ruleta.js";
 import { iniciarDatos, conectarDatos, desconectarDatos } from "./datos.js";
-import { mostrarTirada } from "./sorteo.js";
+import { agregarRedesLogin } from "./redes.js";
 
 const VISTAS = ["login", "espera", "juego"];
 function mostrar(nombre) {
@@ -155,6 +155,9 @@ function entrarASala(codigo) {
           tiradasConocidas.clear();
           tiradas.forEach((tirada) => tiradasConocidas.add(tirada.id));
           nuevas.reverse().forEach((tirada) => {
+            if (Number.isInteger(tirada.resultado) && tirada.resultado >= 1 && tirada.resultado <= 20) {
+              mostrarTiradaLocal(tirada.nombre ?? "Alguien", tirada.resultado);
+            }
             toast(
               `${tirada.nombre} sacó ${tirada.resultado} en d20.`,
               tirada.resultado === 20 ? "ok" : "info"
@@ -273,8 +276,7 @@ $("#btn-token").addEventListener("click", async () => {
 
 $("#btn-d20").addEventListener("click", async () => {
   if (!puedeTirarAhora()) return toast("No es tu turno, o ya gastaste tu tirada.", "error");
-  const tirada = await accion(() => tirarD20(estado.codigo));
-  if (tirada) await mostrarTirada(tirada.nombre, tirada.resultado);
+  await accion(() => tirarD20(estado.codigo));
 });
 
 $("#btn-iniciar-turnos").addEventListener("click", () => {
@@ -303,6 +305,7 @@ iniciarFormPj();
 iniciarMapa();
 iniciarRuleta();
 iniciarDatos(document.querySelector(".tablero"));
+agregarRedesLogin();
 alSoltarFondo((r) => accion(() => salas.guardarFondoRect(estado.codigo, r)));
 onTokenSoltado((id, r) => accion(() => actualizarToken(estado.codigo, id, r)));
 onTokenBorrado((id) => accion(() => borrarToken(estado.codigo, id)));
