@@ -5,6 +5,7 @@ import {
 } from "./compendio.js";
 import { girarCategoria } from "./sorteo.js";
 import { centrarVista } from "./mapa.js";
+import { rosaDeLosVientos } from "./rosa.js";
 
 const ORDEN = ["razas", "habilidades", "spawn", "objetos"];
 
@@ -19,7 +20,8 @@ let editando = null;
 export function iniciarDatos(contenedor) {
   if (panel) return;
   const menu = h("button", { class: "btn-menu", title: "Datos", onclick: alternar }, "☰");
-  const centrar = h("button", { class: "btn-menu btn-centrar", title: "Centrar vista", onclick: () => centrarVista() }, "⌖");
+  const centrar = h("button", { class: "btn-menu btn-centrar", title: "Centrar vista", onclick: () => centrarVista() });
+  centrar.innerHTML = rosaDeLosVientos(34);
   cuerpo = h("div", { class: "datos-cuerpo" });
   panel = h("aside", { class: "datos-panel", hidden: true },
     h("header", { class: "datos-cab" },
@@ -82,7 +84,8 @@ function formulario(lista) {
   const nom = h("input", { maxlength: 40, value: e?.nombre ?? "", placeholder: "Nombre", required: "" });
   const des = h("textarea", { maxlength: 300, rows: 2, placeholder: "Descripción (opcional)" }, e?.descripcion ?? "");
   const subs = tab === "habilidades"
-    ? h("textarea", { rows: 4, placeholder: "Una opción por línea" }, (e?.subOpciones ?? []).join("\n"))
+    ? h("textarea", { rows: 4, placeholder: "Una por línea. Si pones opciones, al salir esta habilidad se gira una ruleta extra con ellas (ej. Stand: Star Platinum, Echoes...)" },
+        (e?.subOpciones ?? []).join("\n"))
     : null;
 
   return h("form", {

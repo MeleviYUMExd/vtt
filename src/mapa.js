@@ -3,6 +3,7 @@
 import { camaraNueva, mover, zoomEnPunto, screenToWorld } from "./camara.js";
 import { puntoEnRect, esquinaEn, esquinas, moverRect, redimensionar } from "./geometria.js";
 import { toast } from "./utils.js";
+import { PAISAJE, generarPaisaje } from "./paisaje.js";
 
 const cam = camaraNueva();
 const CAJA = 1000;
@@ -16,6 +17,7 @@ let sucio = true;
 let fondo = null;
 let urlFondo = "";
 let fondoRect = null;
+let lienzoPaisaje = null;
 let rectRemoto = null;
 let tokens = [];
 const imagenes = new Map();
@@ -209,6 +211,7 @@ function ajustarTamano() {
   dpr = window.devicePixelRatio || 1;
   canvas.width = Math.round(ancho * dpr);
   canvas.height = Math.round(alto * dpr);
+  ctx.imageSmoothingEnabled = false;
 
   if (!centrado) {
     cam.zoom = Math.min(ancho, alto) / 1050;
@@ -240,13 +243,38 @@ function cuadricula() {
   ctx.stroke();
 }
 
+function dibujarPaisaje() {
+  const izquierda = cam.x;
+  const arriba = cam.y;
+  const derecha = cam.x + ancho / cam.zoom;
+  const abajo = cam.y + alto / cam.zoom;
+  const w = derecha - izquierda;
+  const h = abajo - arriba;
+  const finPaisaje = PAISAJE.y0 + PAISAJE.mundo;
+
+  ctx.fillStyle = PAISAJE.cieloArriba;
+  ctx.fillRect(izquierda, arriba, w, h);
+
+  if (abajo > finPaisaje) {
+    const inicioPasto = Math.max(arriba, finPaisaje);
+    ctx.fillStyle = PAISAJE.pastoAbajo;
+    ctx.fillRect(izquierda, inicioPasto, w, abajo - inicioPasto);
+  }
+
+  const primerMosaico = Math.floor(izquierda / PAISAJE.mundo) * PAISAJE.mundo;
+  for (let x = primerMosaico; x < derecha; x += PAISAJE.mundo) {
+    ctx.drawImage(lienzoPaisaje, x, PAISAJE.y0, PAISAJE.mundo, PAISAJE.mundo);
+  }
+}
+
 function dibujar() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = "#101218";
+  ctx.fillStyle = PAISAJE.cieloArriba;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const k = dpr * cam.zoom;
   ctx.setTransform(k, 0, 0, k, -cam.x * k, -cam.y * k);
+  dibujarPaisaje();
   if (fondo && fondoRect) {
     ctx.drawImage(fondo, fondoRect.x, fondoRect.y, fondoRect.w, fondoRect.h);
   }
@@ -300,7 +328,14 @@ export function iniciarMapa() {
   if (canvas) return;
   canvas = document.getElementById("mapa");
   ctx = canvas.getContext("2d");
-
+  lienzoPaisaje = document.createElement("canvas");
+  lienzoPaisaje.width = PAISAJE.px;
+  lienzoPaisaje.height = PAISAJE.px;
+  lienzoPaisaje.getContext("2d").putImageData(
+    new ImageData(generarPaisaje().datos, PAISAJE.px, PAISAJE.px),
+    0,
+    0
+  );
   new ResizeObserver(ajustarTamano).observe(canvas);
 
   canvas.addEventListener("pointerdown", (ev) => {
