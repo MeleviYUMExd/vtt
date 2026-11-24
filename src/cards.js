@@ -55,11 +55,10 @@ function asignar(p, uid) {
   return intentar(() => asignarDueno(estado.codigo, p.id, uid), aviso);
 }
 
-function filaFlechas(etiqueta, p, campo, valor, tope, detalle) {
+function filaFlechas(etiqueta, p, campo, valor, tope) {
   const lm = estado.esLoremaster;
   return h("div", { class: "fila-stat" },
     h("span", {}, etiqueta),
-    detalle ? h("span", { class: "base", title: "Tirada inicial" }, detalle) : null,
     h("span", { class: "ajuste" },
       lm ? h("button", { class: "btn chico", onclick: () => ajustar(p, campo, valor, -1) }, "-") : null,
       `${valor}/${tope}`,
@@ -103,9 +102,9 @@ function crearTarjeta(p) {
 
   return h("li", { class: clases },
     h("strong", {}, p.nombre),
-    filaFlechas("Vida", p, "vidaActual", p.vidaActual, TOPE, `base ${p.stats.vida}`),
+    filaFlechas("Vida", p, "vidaActual", p.vidaActual, TOPE),
     filaFlechas("Fuerza", p, "stats.fuerza", p.stats.fuerza, TOPE),
-    filaFlechas("Magia", p, "magiaActual", p.magiaActual, TOPE, `base ${p.stats.magia}`),
+    filaFlechas("Magia", p, "magiaActual", p.magiaActual, TOPE),
     filaFlechas("Encanto", p, "stats.encanto", p.stats.encanto, TOPE),
     fila("Raza", p.raza?.nombre || "—"),
     h("div", { class: "titulo-seccion" }, "Habilidades"),
