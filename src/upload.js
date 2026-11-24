@@ -4,13 +4,20 @@ import { cloudinary } from "./config.js";
 export const MAX_BYTES = 8 * 1024 * 1024;
 export const TIPOS = ["image/png", "image/jpeg", "image/webp"];
 
-export const PARA_TOKEN = "w_256,h_256,c_fill,f_auto,q_auto";
+export const PARA_TOKEN = "w_256,h_256,c_limit,f_auto,q_auto";
 export const PARA_FONDO = "w_2400,c_limit,f_auto,q_auto";
+const PARA_TOKEN_LEGACY = "w_256,h_256,c_fill,f_auto,q_auto";
 
 export function conTransformacion(url, trans) {
   const marca = "/image/upload/";
   if (!url.includes("res.cloudinary.com") || !url.includes(marca)) return url;
   return url.replace(marca, marca + trans + "/");
+}
+
+export function urlTokenConProporcion(url) {
+  const anterior = `/image/upload/${PARA_TOKEN_LEGACY}/`;
+  const actual = `/image/upload/${PARA_TOKEN}/`;
+  return url.replace(anterior, actual);
 }
 
 export function elegirArchivo() {

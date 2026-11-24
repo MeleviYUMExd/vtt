@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {
-  MAX_BYTES, conTransformacion, subirImagen
+  MAX_BYTES, PARA_TOKEN, conTransformacion, subirImagen, urlTokenConProporcion
 } from "../src/upload.js";
 
 await assert.rejects(
@@ -20,6 +20,12 @@ assert.equal(
   conTransformacion("https://example.com/foto.png", "w_256"),
   "https://example.com/foto.png"
 );
+assert.equal(PARA_TOKEN, "w_256,h_256,c_limit,f_auto,q_auto");
+assert.equal(
+  urlTokenConProporcion("https://res.cloudinary.com/demo/image/upload/w_256,h_256,c_fill,f_auto,q_auto/v1/foto.webp"),
+  "https://res.cloudinary.com/demo/image/upload/w_256,h_256,c_limit,f_auto,q_auto/v1/foto.webp"
+);
+assert.equal(urlTokenConProporcion("https://example.com/foto.png"), "https://example.com/foto.png");
 
 const fetchOriginal = globalThis.fetch;
 try {

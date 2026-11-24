@@ -4,6 +4,7 @@ import { camaraNueva, mover, zoomEnPunto, screenToWorld, limitarCamaraAlMapa } f
 import { puntoEnRect, esquinaEn, esquinas, moverRect, redimensionar } from "./geometria.js";
 import { toast } from "./utils.js";
 import { PAISAJE, generarPaisaje } from "./paisaje.js";
+import { urlTokenConProporcion } from "./upload.js";
 
 const cam = camaraNueva();
 const CAJA = 1000;
@@ -72,13 +73,14 @@ export function permitirEdicion(si) {
 }
 
 function obtenerImagen(url) {
-  let e = imagenes.get(url);
+  const urlOriginal = urlTokenConProporcion(url);
+  let e = imagenes.get(urlOriginal);
   if (e) return e;
   const img = new Image();
   e = { img, listo: false };
-  imagenes.set(url, e);
+  imagenes.set(urlOriginal, e);
   img.onload = () => { e.listo = true; sucio = true; };
-  img.src = url;
+  img.src = urlOriginal;
   return e;
 }
 
@@ -116,10 +118,10 @@ function dibujarToken(t) {
   const e = obtenerImagen(t.imagenUrl);
 
   if (e.listo) {
-    const lado = Math.min(e.img.width, e.img.height);
-    const sx = (e.img.width - lado) / 2;
-    const sy = (e.img.height - lado) / 2;
-    ctx.drawImage(e.img, sx, sy, lado, lado, t.x - r, t.y - r, t.tam, t.tam);
+    const escala = Math.min(t.tam / e.img.width, t.tam / e.img.height);
+    const w = e.img.width * escala;
+    const h = e.img.height * escala;
+    ctx.drawImage(e.img, t.x - w / 2, t.y - h / 2, w, h);
   } else {
     ctx.fillStyle = "#252a35";
     ctx.fillRect(t.x - r, t.y - r, t.tam, t.tam);
