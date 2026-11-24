@@ -1,9 +1,9 @@
 // Fondo pixelado del tablero: cielo con nubes arriba y pasto abajo.
 export const PAISAJE = {
   px: 512,
-  mundo: 6000,
-  y0: -2500,
-  horizonte: 560,
+  mundo: 7200,
+  y0: -3000,
+  horizonte: 672,
   cieloArriba: "#1f4fb0",
   pastoAbajo: "#2c7430",
   noche: {

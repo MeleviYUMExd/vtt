@@ -1,7 +1,8 @@
 // Pruebas de camara.js. Ejecuta: node tests/camara.test.mjs
 import assert from "node:assert/strict";
 import {
-  camaraNueva, worldToScreen, screenToWorld, mover, zoomEnPunto, limitar, ZOOM_MIN, ZOOM_MAX
+  camaraNueva, worldToScreen, screenToWorld, mover, zoomEnPunto, limitar,
+  limitarCamaraAlMapa, ZOOM_MIN, ZOOM_MAX
 } from "../src/camara.js";
 
 let fallos = 0;
@@ -61,6 +62,28 @@ prueba("zoomEnPunto: respeta el zoom mínimo y máximo", () => {
   assert.equal(cam.zoom, ZOOM_MAX);
   for (let i = 0; i < 50; i++) zoomEnPunto(cam, 10, 10, 0.5);
   assert.equal(cam.zoom, ZOOM_MIN);
+});
+
+prueba("limitarCamaraAlMapa: evita salir de los cuatro bordes del mapa", () => {
+  const mapa = { x: 0, y: -3000, w: 7200, h: 7200 };
+  const cam = { x: -500, y: -4000, zoom: 1 };
+  limitarCamaraAlMapa(cam, 800, 600, mapa);
+  assert.equal(cam.x, mapa.x);
+  assert.equal(cam.y, mapa.y);
+
+  cam.x = 9000;
+  cam.y = 9000;
+  limitarCamaraAlMapa(cam, 800, 600, mapa);
+  casi(cam.x + 800 / cam.zoom, mapa.x + mapa.w);
+  casi(cam.y + 600 / cam.zoom, mapa.y + mapa.h);
+});
+
+prueba("limitarCamaraAlMapa: aumenta el zoom si el viewport excede el mapa", () => {
+  const cam = { x: 0, y: 0, zoom: ZOOM_MIN };
+  limitarCamaraAlMapa(cam, 1600, 900, { x: 0, y: 0, w: 7200, h: 7200 });
+  assert.equal(cam.zoom, 1600 / 7200);
+  casi(cam.x, 0);
+  casi(cam.y, 0);
 });
 
 console.log(fallos === 0 ? "\nTodo bien: 0 fallos." : `\n${fallos} prueba(s) fallaron.`);

@@ -25,6 +25,19 @@ export function mover(cam, dx, dy) {
   cam.y -= dy / cam.zoom;
 }
 
+export function limitarCamaraAlMapa(cam, ancho, alto, mapa) {
+  const zoomMinimo = Math.max(ZOOM_MIN, ancho / mapa.w, alto / mapa.h);
+  cam.zoom = Math.min(ZOOM_MAX, Math.max(cam.zoom, zoomMinimo));
+
+  const vistaAncho = ancho / cam.zoom;
+  const vistaAlto = alto / cam.zoom;
+  const maxX = mapa.x + mapa.w - vistaAncho;
+  const maxY = mapa.y + mapa.h - vistaAlto;
+  cam.x = maxX < mapa.x ? mapa.x + (mapa.w - vistaAncho) / 2 : limitar(cam.x, mapa.x, maxX);
+  cam.y = maxY < mapa.y ? mapa.y + (mapa.h - vistaAlto) / 2 : limitar(cam.y, mapa.y, maxY);
+  return cam;
+}
+
 export function zoomEnPunto(cam, sx, sy, factor) {
   const antes = screenToWorld(cam, sx, sy);
   cam.zoom = limitar(cam.zoom * factor, ZOOM_MIN, ZOOM_MAX);

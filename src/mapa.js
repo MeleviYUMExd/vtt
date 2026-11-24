@@ -1,12 +1,13 @@
 // src/mapa.js
 // Tablero con paneo y zoom. Solo vuelve a dibujar cuando hay cambios.
-import { camaraNueva, mover, zoomEnPunto, screenToWorld } from "./camara.js";
+import { camaraNueva, mover, zoomEnPunto, screenToWorld, limitarCamaraAlMapa } from "./camara.js";
 import { puntoEnRect, esquinaEn, esquinas, moverRect, redimensionar } from "./geometria.js";
 import { toast } from "./utils.js";
 import { PAISAJE, generarPaisaje } from "./paisaje.js";
 
 const cam = camaraNueva();
 const CAJA = 1000;
+const LIMITES_MAPA = { x: 0, y: PAISAJE.y0, w: PAISAJE.mundo, h: PAISAJE.mundo };
 const MOSTRAR_REJILLA = false;
 let canvas = null;
 let ctx = null;
@@ -99,10 +100,11 @@ export function centroVista() {
 
 export function centrarVista() {
   if (!ancho || !alto) return;
-  const rect = fondoRect || { x: 0, y: 0, w: CAJA, h: CAJA };
+  const rect = fondoRect || LIMITES_MAPA;
   cam.zoom = Math.max(0.2, Math.min(ancho / rect.w, alto / rect.h, 4));
   cam.x = rect.x + rect.w / 2 - ancho / 2 / cam.zoom;
   cam.y = rect.y + rect.h / 2 - alto / 2 / cam.zoom;
+  limitarCamaraAlMapa(cam, ancho, alto, LIMITES_MAPA);
   centrado = true;
   movimientoUsuario = true;
   sucio = true;
@@ -193,6 +195,7 @@ export function ponerFondo(url) {
         cam.zoom = Math.max(0.2, Math.min(ancho / rect.w, alto / rect.h, 4));
         cam.x = rect.x + rect.w / 2 - ancho / 2 / cam.zoom;
         cam.y = rect.y + rect.h / 2 - alto / 2 / cam.zoom;
+        limitarCamaraAlMapa(cam, ancho, alto, LIMITES_MAPA);
         centrado = true;
       }
       fondoInicializado = true;
@@ -216,10 +219,11 @@ function ajustarTamano() {
 
   if (!centrado) {
     cam.zoom = Math.min(ancho, alto) / 1050;
-    cam.x = CAJA / 2 - ancho / 2 / cam.zoom;
-    cam.y = CAJA / 2 - alto / 2 / cam.zoom;
+    cam.x = LIMITES_MAPA.x + LIMITES_MAPA.w / 2 - ancho / 2 / cam.zoom;
+    cam.y = LIMITES_MAPA.y + LIMITES_MAPA.h / 2 - alto / 2 / cam.zoom;
     centrado = true;
   }
+  limitarCamaraAlMapa(cam, ancho, alto, LIMITES_MAPA);
   sucio = true;
 }
 
@@ -408,6 +412,7 @@ export function iniciarMapa() {
     } else if (accion.tipo === "camara") {
       movimientoUsuario = true;
       mover(cam, ev.clientX - ultimo.x, ev.clientY - ultimo.y);
+      limitarCamaraAlMapa(cam, ancho, alto, LIMITES_MAPA);
       ultimo = { x: ev.clientX, y: ev.clientY };
     } else if (accion.tipo === "mover") {
       const p = puntoMundo(ev);
@@ -460,6 +465,7 @@ export function iniciarMapa() {
     movimientoUsuario = true;
     const r = canvas.getBoundingClientRect();
     zoomEnPunto(cam, ev.clientX - r.left, ev.clientY - r.top, Math.exp(-ev.deltaY * 0.0015));
+    limitarCamaraAlMapa(cam, ancho, alto, LIMITES_MAPA);
     sucio = true;
   }, { passive: false });
 
